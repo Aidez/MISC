@@ -1,0 +1,172 @@
+local Players = game:GetService("Players")
+if not Players.LocalPlayer then
+    game:GetService("Players"):GetPropertyChangedSignal("LocalPlayer"):Wait()
+end
+
+repeat wait() until game:IsLoaded()
+
+local HttpService = game:GetService("HttpService")
+
+local function GetServers(placeid)
+    local Servers = {}
+    local CurrentCursor = ""
+    if placeid == nil then
+        placeid = game.PlaceId
+    end
+    repeat
+        local ListRaw = game:HttpGet("https://games.roblox.com/v1/games/"..tostring(placeid).."/servers/Public?sortOrder=Asc&limit=100&cursor="..CurrentCursor)
+        local CurrentList = HttpService:JSONDecode(ListRaw) -- done in 2 steps for getting cursor later
+        if CurrentList.data == nil then
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "ERROR";
+                Text = "Something went wrong with grabbing servers (data doesn't exist)";
+                Icon = "rbxassetid://2541869220";
+                Duration = 7;
+            })
+            break
+        end
+        for i = 1,#CurrentList.data do
+            if CurrentList.data[i].maxPlayers - 1 > CurrentList.data[i].playing then
+                table.insert(Servers, CurrentList.data[i])
+            end
+        end
+        local CursorIndex = string.find(ListRaw, "nextPageCursor")
+        local EndComma = string.find(ListRaw, ",", CursorIndex)
+        local ToEdit = string.sub(ListRaw, CursorIndex, EndComma - 1)
+        local ToEdit = string.gsub(ToEdit, '"', "")
+        CurrentCursor = string.gsub(ToEdit, 'nextPageCursor:', "")
+        wait()
+    until CurrentCursor == "null"
+    return Servers
+end
+
+local function getargs(inputstring)
+    inputstring = string.lower(inputstring)
+    inputstring = string.gsub(inputstring, "'", "")
+    inputstring = string.gsub(inputstring, ":", "")
+    inputstring = string.gsub(inputstring, "/e ", "")
+    inputstring = string.gsub(inputstring, "/w ", "")
+    local args = string.split(inputstring, " ")
+    args.Command = args[1]
+    table.remove(args, 1)
+    return args
+end
+
+local function IsInTable(table, tofind)
+    local found = false
+    for i,v in pairs(table) do
+        if v == tofind or i == tofind then
+            found = true
+            break
+        end
+    end
+    return found
+end
+
+local function CheckMatches(table)
+    for i,v in pairs(table) do
+        local ToFind = v[1]
+        v[1] = ""
+        for x = 1,#v do
+            if string.lower(v[x]) == string.lower(ToFind) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+game.Players.LocalPlayer.Chatted:Connect(function(msg)
+    if not string.find(msg, "/e ") and not string.find(msg, ":") and not string.find(msg, "/w ") then
+        return
+    end
+    local Args = getargs(msg)
+
+    if IsInTable({"joinserver","new","newserver","ns","lowping","pingserver","lowpingserver","fastserver","goodserver","closeserver","lowestping","lowestpingserver","fastestserver","bestserver","closestserver","smallserver","lowplayerserver","tinyserver","joinsmallserver","smallestserver","lowestplayerserver","tiniestserver","joinsmallestserver","largeserver","highplayerserver","bigserver","joinlargeserver","joinbigserver","largestserver","highestplayerserver","biggestserver","joinlargestserver","joinbiggestserver"}, Args.Command) then
+        local Servers = GetServers(tonumber(Args[2]) or tonumber(Args[1]))
+        local Keyword = Args[2] or Args[1]
+        local ChosenId
+        local FilteredServers = {}
+        if string.find(tostring(Keyword), "%d") or Keyword == nil then
+            Keyword = "nil"
+        end
+        if CheckMatches({{Args.Command,"lowping","pingserver","lowpingserver","fastserver","goodserver","closeserver"},{Keyword,"ping","lowping","fast","good","close"}}) then
+            local LowestPing = math.huge
+            local LowestPingServer
+            for i,v in pairs(Servers) do
+                if v["ping"] <= 80 then
+                    table.insert(FilteredServers, v)
+                elseif v["ping"] < LowestPing then
+                    LowestPing = v["ping"]
+                    LowestPingServer = v
+                end
+            end
+            table.insert(FilteredServers, LowestPingServer)
+        elseif CheckMatches({{Args.Command,"lowestping","lowestpingserver","fastestserver","bestserver","closestserver"},{Keyword,"lowestping","fastest", "best","closest"}}) then
+            local LowestPing = math.huge
+            local LowestPingServer
+            for i,v in pairs(Servers) do
+                if v["ping"] < LowestPing then
+                    LowestPing = v["ping"]
+                    LowestPingServer = v	
+                end
+            end
+            table.insert(FilteredServers, LowestPingServer)
+        elseif CheckMatches({{Args.Command,"smallserver","lowplayerserver","tinyserver","joinsmallserver"},{Keyword,"small","tiny","low","lonely","lowplayer"}}) then
+            local LowestPlayers = math.huge
+            local LowestPlayerServer
+            for i,v in pairs(Servers) do
+                if v["playing"] < LowestPlayers then
+                    LowestPlayers = v["playing"]
+                    LowestPlayerServer = v
+                end
+            end
+            table.insert(FilteredServers, LowestPlayerServer)
+            for i,v in pairs(Servers) do
+                if v["playing"] <= LowestPlayers + 2 then
+                    table.insert(FilteredServers, v)
+                end
+            end
+        elseif CheckMatches({{Args.Command,"smallestserver","lowestplayerserver","tiniestserver","joinsmallestserver"},{Keyword,"smallest","tiniest","loneliest","lowestplayer","lowestplayers","unpopulated"}}) then
+            local LowestPlayers = math.huge
+            local LowestPlayerServer
+            for i,v in pairs(Servers) do
+                if v["playing"] < LowestPlayers then
+                    LowestPlayers = v["playing"]
+                    LowestPlayerServer = v
+                end
+            end
+            table.insert(FilteredServers, LowestPlayerServer)
+        elseif CheckMatches({{Args.Command,"largeserver","highplayerserver","bigserver","joinlargeserver","joinbigserver"},{Keyword,"large","big","populated","bigserver","largeserver"}}) then
+            local HighestPlayers = 0
+            local HighestPlayerServer
+            for i,v in pairs(Servers) do
+                if v["playing"] > HighestPlayers then
+                    HighestPlayers = v["playing"]
+                    HighestPlayerServer = v
+                end
+            end
+            table.insert(FilteredServers, HighestPlayerServer)
+            for i,v in pairs(Servers) do
+                if v["playing"] >= HighestPlayers - 2 then
+                    table.insert(FilteredServers, v)
+                end
+            end
+        elseif CheckMatches({{Args.Command,"largestserver","highestplayerserver","biggestserver","joinlargestserver","joinbiggestserver"},{Keyword,"largest","biggest","mostpopulated","biggestserver","largestserver"}}) then
+            local HighestPlayers = 0
+            local HighestPlayerServer
+            for i,v in pairs(Servers) do
+                if v["playing"] > HighestPlayers then
+                    HighestPlayers = v["playing"]
+                    HighestPlayerServer = v
+                end
+            end
+            table.insert(FilteredServers, HighestPlayerServer)
+        end
+        if #FilteredServers ~= 0 then
+            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, FilteredServers[math.random(1,#FilteredServers)].id, game.Players.LocalPlayer)
+        else
+            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, Servers[math.random(1,#Servers)].id, game.Players.LocalPlayer)
+        end
+    end
+end)
