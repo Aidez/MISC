@@ -169,4 +169,7 @@ game.Players.LocalPlayer.Chatted:Connect(function(msg)
             game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, Servers[math.random(1,#Servers)].id, game.Players.LocalPlayer)
         end
     end
+    if Args.Command == "rejoin" then
+        game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+    end
 end)
