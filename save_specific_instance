@@ -2,7 +2,6 @@ if _G.ToSave == nil then
     _G.ToSave = game.Players.LocalPlayer.Character -- Welcome loadstring haters, put the path of what you want to save here
 end
 
-
 local newline = tostring("\n")
 local Xml = {
     start = '<roblox xmlns:xmime="https://www.w3.org/2005/05/xmlmime" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://www.roblox.com/roblox.xsd" version="4">'..newline..'<Meta name="ExplicitAutoJoints">true</Meta>'..newline..'<External>null</External>'..newline..'<External>nil</External>',
