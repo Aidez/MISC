@@ -16,7 +16,6 @@ local Xml = {
 }
 local Property = {}
 function Property:convert(p1, p2, p3, p4)
-print(p1,p2,p3,p3[1],p4)
     local p4_gsub = {
         double = "number",
         int = "number",
@@ -436,7 +435,13 @@ end
 
 writeinstance = function(p1, p2)
     local Descendants = p1:GetDescendants()
-    print(#Descendants)
+    game.StarterGui:SetCore("SendNotification", {
+        Title = 'STARTED';
+        Text = "Saving your selected instance. \n("..tostring(#Descendants).." DESCENDANTS)";
+        Icon = "rbxassetid://2541869220";
+        Duration = 7;
+    })
+    print()
     local Instances = {}
     for i,v in pairs(Descendants) do
         if i%50 == 0 then
@@ -501,9 +506,19 @@ end
 
 local Success, Saved_As = pcall(writeinstance, _G.ToSave, "rbxmx")
 if Success then
-    warn("[writeinstance]: Success", "Instance '"..tostring(_G.ToSave)..[[' was saved to your workspace folder as "]]..Saved_As..[["! This file can now be inserted in Roblox Studio.]])
+    game.StarterGui:SetCore("SendNotification", {
+        Title = 'SUCCESS';
+        Text = "Instance "..tostring(_G.ToSave).." was saved to your workspace folder.";
+        Icon = "rbxassetid://2541869220";
+        Duration = 7;
+    })
 else
-    warn("[writeinstance]: Error", "\n"..Saved_As)
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "ERROR";
+        Text = Saved_As;
+        Icon = "rbxassetid://2541869220";
+        Duration = 7;
+    })
 end
 
 --[[ 
