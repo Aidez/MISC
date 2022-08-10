@@ -4,6 +4,13 @@ end
 
 --[[ 
 
+If you're seeing this, you're probably not using the loadstring!
+It's probably better to use this version instead:
+---------------------------
+_G.ToSave = game.Players.LocalPlayer.Character -- Put the path of the thing you want to save here
+loadstring(game:HttpGet(('https://raw.githubusercontent.com/Aidez/MISC/main/save_specific_instance'),true))()
+---------------------------
+
 MASSIVE CREDIT TO https://v3rmillion.net/showthread.php?tid=1032423
 MOST OF THIS SCRIPT IS REPURPOSED CODE FROM THEIR SCRIPT
 
@@ -53,13 +60,6 @@ function Property:convert(p1, p2, p3, p4)
             return string.format(Conversion_Format, p2, p3.Min.." "..p3.Max)
         end,
         NumberSequence = function()
---[[
-                table.insert(ConvertedArray, unpack({
-                    Envelope = Keypoints.Envelope;
-                    Time = Keypoints.Time;
-                    Value = Keypoints.Value;
-                }))
---]]
             local p3 = p3[1]
             local Conversion_Format = [[<NumberSequence name="%s">%s</NumberSequence>]]
             local ConvertedArray = {}
