@@ -499,7 +499,8 @@ writeinstance = function(p1, p2)
     D ..= [[</SharedStrings>]]..newline
     D ..= Xml.finish
     D = string.gsub(D,"BIGBONER","%%")
-    local C = MAINTAG.." ("..tostring(p1)..")."..p2
+    -- local C = MAINTAG.." ("..tostring(p1)..")."..p2
+    local C = p1:GetFullName().."."..p2
     writefile(C, D)
     return C
 end
