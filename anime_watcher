@@ -1,0 +1,1025 @@
+local RootFolder = "AnimeWatcher/"
+local AnimeFolder = "AnimeWatcher/Anime/"
+local TempFolder = "AnimeWatcher/TempFiles/"
+local BaseUrl = "https://gogoanime.lu"
+
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+
+local Player = game.Players.LocalPlayer
+local Mouse = game.Players.LocalPlayer:GetMouse()
+
+local Minimizing = false
+local MouseOnTopbar = false
+local MouseOnResize = false
+
+local CommonResolutions = {
+    [1080] = 1920;
+    [720] = 1280;
+    [460] = 852;
+    [480] = 852;
+    [360] = 640;
+}
+
+if isfolder(RootFolder) then
+    if not isfolder(AnimeFolder) then
+        makefolder(AnimeFolder)
+    end
+    if not isfolder(TempFolder) then
+        makefolder(TempFolder)
+    end
+else
+    makefolder(RootFolder)
+    makefolder(AnimeFolder)
+    makefolder(TempFolder)
+end
+
+local Stats
+if not pcall(function()Stats = HttpService:JSONDecode(readfile(RootFolder.."UserStats.txt"))end) then
+    Stats = {
+        Library = {}
+    }
+end
+
+-- Gui Stuff
+
+local AnimePlayer = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local VideoFrame = Instance.new("VideoFrame",ScreenGui)
+local TopBar = Instance.new("Frame")
+local Drag = Instance.new("Frame")
+local Close = Instance.new("ImageButton")
+local Minimize = Instance.new("ImageButton")
+local Title = Instance.new("TextLabel")
+local Results = Instance.new("ScrollingFrame")
+local UIGridLayout = Instance.new("UIGridLayout")
+local Example = Instance.new("ImageButton")
+local Title_2 = Instance.new("TextLabel")
+local BottomBar = Instance.new("Frame")
+local Resize = Instance.new("ImageButton")
+local VideoBack = Instance.new("ImageButton")
+local BackButton = Instance.new("ImageButton")
+local DownloadsButton = Instance.new("ImageButton")
+local SearchButton = Instance.new("ImageButton")
+local Details = Instance.new("Frame")
+local Episodes = Instance.new("ScrollingFrame")
+local UIListLayout = Instance.new("UIListLayout")
+local Example_2 = Instance.new("TextButton")
+local ImageLabel = Instance.new("ImageLabel")
+local Description = Instance.new("TextLabel")
+local Title_3 = Instance.new("TextLabel")
+local Downloads = Instance.new("ScrollingFrame")
+local UIListLayout_2 = Instance.new("UIListLayout")
+local SpacerExample = Instance.new("TextLabel")
+local Example_3 = Instance.new("TextButton")
+local Delete = Instance.new("ImageButton")
+local Play = Instance.new("ImageButton")
+local SearchBar = Instance.new("TextBox")
+local ExamplePrompt = Instance.new("Frame")
+local Yes = Instance.new("TextButton")
+local No = Instance.new("TextButton")
+local PromptTitle = Instance.new("TextLabel")
+local PromptDescription = Instance.new("TextLabel")
+
+--Properties:
+
+AnimePlayer.Name = "AnimePlayer"
+AnimePlayer.Parent = game.CoreGui
+AnimePlayer.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = AnimePlayer
+MainFrame.BackgroundColor3 = Color3.fromRGB(54, 57, 63)
+MainFrame.Position = UDim2.new(0.349961013, 0, 0.174289256, 0)
+MainFrame.Size = UDim2.new(0.300000012, 0, 0.699999988, 0)
+
+local Minimized = Instance.new("BoolValue",MainFrame)
+Minimized.Value = false
+
+VideoFrame.Parent = MainFrame
+VideoFrame.Playing = false
+VideoFrame.Size = UDim2.new(1,0,0.925,0)
+VideoFrame.Position = UDim2.new(0,0,0,0)
+VideoFrame.Visible = false
+
+TopBar.Name = "TopBar"
+TopBar.Parent = AnimePlayer
+TopBar.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+TopBar.Position = UDim2.new(0.350000024, 0, 0.173999995, 0)
+TopBar.Size = UDim2.new(0.300000012, 0, 0.0352893025, 0)
+TopBar.ZIndex = 9
+TopBar.Active = true
+
+Drag.Name = "Drag"
+Drag.Parent = TopBar
+Drag.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Drag.BackgroundTransparency = 1.000
+Drag.BorderSizePixel = 0
+Drag.Size = UDim2.new(0.819999993, 0, 1, 0)
+
+Close.Name = "Close"
+Close.Parent = TopBar
+Close.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Close.BackgroundTransparency = 1.000
+Close.Position = UDim2.new(0.940999985, 0, 0.100000001, 0)
+Close.Size = UDim2.new(0.058823064, 0, 0.800000012, 0)
+Close.ZIndex = 10
+Close.Image = "http://www.roblox.com/asset/?id=6302778252"
+
+Minimize.Name = "Minimize"
+Minimize.Parent = TopBar
+Minimize.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Minimize.BackgroundTransparency = 1.000
+Minimize.Position = UDim2.new(0.850000024, 0, 0.100000001, 0)
+Minimize.Size = UDim2.new(0.058823064, 0, 0.800000012, 0)
+Minimize.ZIndex = 10
+Minimize.Image = "http://www.roblox.com/asset/?id=3517304301"
+
+Title.Name = "Title"
+Title.Parent = TopBar
+Title.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+Title.BackgroundTransparency = 1.000
+Title.BorderColor3 = Color3.fromRGB(27, 42, 53)
+Title.BorderSizePixel = 0
+Title.Size = UDim2.new(0.569999993, 0, 1, 0)
+Title.ZIndex = 3
+Title.Font = Enum.Font.SourceSans
+Title.Text = "  Anime Player (Made by Aidez)"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20.000
+Title.TextStrokeTransparency = 0.000
+Title.TextWrapped = true
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+Results.Name = "Results"
+Results.Parent = MainFrame
+Results.Active = true
+Results.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+Results.BorderSizePixel = 0
+Results.Position = UDim2.new(0.0340000018, 0, 0.075000003, 0)
+Results.Size = UDim2.new(0.930000007, 0, 0.850000024, 0)
+Results.Visible = false
+Results.ZIndex = 3
+Results.CanvasSize = UDim2.new(1, 0, 1, 0)
+Results.HorizontalScrollBarInset = Enum.ScrollBarInset.Always
+Results.ScrollBarThickness = 0
+Results.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+UIGridLayout.Parent = Results
+UIGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIGridLayout.CellSize = UDim2.new(0.3,0,0.35,0)
+
+Example.Name = "Example"
+Example.Parent = Results
+Example.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Example.Size = UDim2.new(0, 100, 0, 100)
+Example.Visible = false
+Example.ZIndex = 3
+Example.Image = "rbxassetid://10578009674"
+
+local Link = Instance.new("StringValue",Example)
+Link.Name = "Link"
+
+Title_2.Name = "Title"
+Title_2.Parent = Example
+Title_2.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+Title_2.BackgroundTransparency = 0.600
+Title_2.BorderColor3 = Color3.fromRGB(27, 42, 53)
+Title_2.Position = UDim2.new(0, 0, 0.899999976, 0)
+Title_2.Size = UDim2.new(1, 0, 0.100000001, 0)
+Title_2.ZIndex = 3
+Title_2.Font = Enum.Font.SourceSans
+Title_2.Text = "Youjo Shenki Episode 0"
+Title_2.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title_2.TextScaled = true
+Title_2.TextSize = 14.000
+Title_2.TextStrokeTransparency = 0.000
+Title_2.TextWrapped = true
+
+BottomBar.Name = "BottomBar"
+BottomBar.Parent = MainFrame
+BottomBar.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+BottomBar.BackgroundTransparency = 1.000
+BottomBar.Position = UDim2.new(0, 0, 0.925000072, 0)
+BottomBar.Size = UDim2.new(1, 0, 0.0750000551, 0)
+BottomBar.ZIndex = 3
+
+Resize.Name = "Resize"
+Resize.Parent = BottomBar
+Resize.BackgroundColor3 = Color3.fromRGB(78, 78, 79)
+Resize.Position = UDim2.new(0.950999975, 0, 0.526000023, 0)
+Resize.Size = UDim2.new(0.0486604646, 0, 0.462678373, 0)
+Resize.ZIndex = 3
+Resize.ImageTransparency = 1.000
+
+VideoBack.Name = "VideoBack"
+VideoBack.Parent = BottomBar
+VideoBack.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+VideoBack.BackgroundTransparency = 1.000
+VideoBack.Position = UDim2.new(0.0500000007, 0, 0.100000001, 0)
+VideoBack.Size = UDim2.new(0.0900000036, 0, 0.800000012, 0)
+VideoBack.ZIndex = 3
+VideoBack.Image = "http://www.roblox.com/asset/?id=6972120335"
+VideoBack.Visible = false
+
+BackButton.Name = "BackButton"
+BackButton.Parent = BottomBar
+BackButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+BackButton.BackgroundTransparency = 1.000
+BackButton.Position = UDim2.new(0.300000012, 0, 0.100000001, 0)
+BackButton.Size = UDim2.new(0.0900000036, 0, 0.800000012, 0)
+BackButton.ZIndex = 3
+BackButton.Image = "http://www.roblox.com/asset/?id=6972120335"
+
+DownloadsButton.Name = "DownloadsButton"
+DownloadsButton.Parent = BottomBar
+DownloadsButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+DownloadsButton.BackgroundTransparency = 1.000
+DownloadsButton.Position = UDim2.new(0.453000009, 0, 0.100000001, 0)
+DownloadsButton.Size = UDim2.new(0.0900000036, 0, 0.800000012, 0)
+DownloadsButton.ZIndex = 3
+DownloadsButton.Image = "http://www.roblox.com/asset/?id=10578187012"
+
+SearchButton.Name = "SearchButton"
+SearchButton.Parent = BottomBar
+SearchButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SearchButton.BackgroundTransparency = 1.000
+SearchButton.Position = UDim2.new(0.606000006, 0, 0.100000001, 0)
+SearchButton.Size = UDim2.new(0.0900000036, 0, 0.800000012, 0)
+SearchButton.ZIndex = 3
+SearchButton.Image = "http://www.roblox.com/asset/?id=2512702176"
+
+Details.Name = "Details"
+Details.Parent = MainFrame
+Details.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+Details.BorderSizePixel = 0
+Details.Position = UDim2.new(0.0340000018, 0, 0.075000003, 0)
+Details.Size = UDim2.new(0.930000007, 0, 0.850000024, 0)
+Details.Visible = false
+
+local Link_2 = Instance.new("StringValue",Details)
+Link_2.Name = "Link"
+
+Episodes.Name = "Episodes"
+Episodes.Parent = Details
+Episodes.Active = true
+Episodes.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+Episodes.BorderSizePixel = 0
+Episodes.Position = UDim2.new(0, 0, 0.649999976, 0)
+Episodes.Size = UDim2.new(1, 0, 0.349999994, 0)
+Episodes.ZIndex = 4
+Episodes.CanvasSize = UDim2.new(1, 0, 1, 0)
+Episodes.HorizontalScrollBarInset = Enum.ScrollBarInset.Always
+Episodes.ScrollBarThickness = 8
+Episodes.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+UIListLayout.Parent = Episodes
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+Example_2.Name = "Example"
+Example_2.Parent = Episodes
+Example_2.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+Example_2.BackgroundTransparency = 0.600
+Example_2.Size = UDim2.new(1, 0, 0.100000001, 0)
+Example_2.Visible = false
+Example_2.Font = Enum.Font.SourceSans
+Example_2.Text = "  Button"
+Example_2.TextColor3 = Color3.fromRGB(255, 255, 255)
+Example_2.TextSize = 16.000
+Example_2.TextWrapped = true
+Example_2.TextXAlignment = Enum.TextXAlignment.Left
+
+ImageLabel.Parent = Details
+ImageLabel.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+ImageLabel.Size = UDim2.new(0.400000006, 0, 0.400000006, 0)
+ImageLabel.Image = "rbxassetid://10578009674"
+
+Description.Name = "Description"
+Description.Parent = Details
+Description.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+Description.BackgroundTransparency = 1.000
+Description.BorderColor3 = Color3.fromRGB(27, 42, 53)
+Description.BorderSizePixel = 0
+Description.Position = UDim2.new(0.430000007, 0, 0.103, 0)
+Description.Size = UDim2.new(0.569999993, 0, 0.300000012, 0)
+Description.ZIndex = 3
+Description.Font = Enum.Font.SourceSans
+Description.Text = "On the front lines of the war, there is a little girl. Blond hair, blue eyes, and porcelain white skin, she commands her squad with lisping voice. Her name is Tanya Degurechaff. But in reality, she is one of Japan's most elite salarymen, reborn as a little girl after angering a mysterious being who calls himself God. This little girl, who prioritizes efficiency and her own career over anything else, will become the most dangerous being amongst the sorcerers of the imperial army."
+Description.TextColor3 = Color3.fromRGB(255, 255, 255)
+Description.TextScaled = true
+Description.TextSize = 14.000
+Description.TextStrokeTransparency = 0.000
+Description.TextWrapped = true
+Description.TextXAlignment = Enum.TextXAlignment.Left
+
+Title_3.Name = "Title"
+Title_3.Parent = Details
+Title_3.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+Title_3.BackgroundTransparency = 1.000
+Title_3.BorderColor3 = Color3.fromRGB(27, 42, 53)
+Title_3.BorderSizePixel = 0
+Title_3.Position = UDim2.new(0.430000007, 0, 0, 0)
+Title_3.Size = UDim2.new(0.569999993, 0, 0.100000001, 0)
+Title_3.ZIndex = 3
+Title_3.Font = Enum.Font.SourceSans
+Title_3.Text = "Youjo Shenki Episode 0"
+Title_3.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title_3.TextScaled = true
+Title_3.TextSize = 14.000
+Title_3.TextStrokeTransparency = 0.000
+Title_3.TextWrapped = true
+Title_3.TextXAlignment = Enum.TextXAlignment.Left
+
+Downloads.Name = "Downloads"
+Downloads.Parent = MainFrame
+Downloads.Active = true
+Downloads.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+Downloads.BorderSizePixel = 0
+Downloads.Position = UDim2.new(0.0340000018, 0, 0.075000003, 0)
+Downloads.Size = UDim2.new(0.930000007, 0, 0.850000024, 0)
+Downloads.ZIndex = 3
+Downloads.CanvasSize = UDim2.new(1, 0, 1, 0)
+Downloads.HorizontalScrollBarInset = Enum.ScrollBarInset.Always
+Downloads.ScrollBarThickness = 0
+
+UIListLayout_2.Parent = Downloads
+UIListLayout_2.SortOrder = Enum.SortOrder.LayoutOrder
+
+SpacerExample.Name = "SpacerExample"
+SpacerExample.Parent = Downloads
+SpacerExample.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+SpacerExample.BorderColor3 = Color3.fromRGB(27, 42, 53)
+SpacerExample.Position = UDim2.new(0.430000007, 0, 0, 0)
+SpacerExample.Size = UDim2.new(0.930000007, 0, 0.0500000007, 0)
+SpacerExample.Visible = false
+SpacerExample.ZIndex = 3
+SpacerExample.Font = Enum.Font.SourceSans
+SpacerExample.Text = "Series Name"
+SpacerExample.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpacerExample.TextScaled = true
+SpacerExample.TextSize = 14.000
+SpacerExample.TextStrokeTransparency = 0.000
+SpacerExample.TextWrapped = true
+
+Example_3.Name = "Example"
+Example_3.Parent = Downloads
+Example_3.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+Example_3.BackgroundTransparency = 0.600
+Example_3.Size = UDim2.new(0.930000007, 0, 0.100000001, 0)
+Example_3.Visible = false
+Example_3.Font = Enum.Font.SourceSans
+Example_3.Text = "  Episode Name"
+Example_3.TextColor3 = Color3.fromRGB(255, 255, 255)
+Example_3.TextSize = 16.000
+Example_3.TextWrapped = true
+Example_3.TextXAlignment = Enum.TextXAlignment.Left
+
+local AnimePath = Instance.new("StringValue",Example_3)
+AnimePath.Name = "AnimePath"
+
+Delete.Name = "Delete"
+Delete.Parent = Example_3
+Delete.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Delete.BackgroundTransparency = 1.000
+Delete.Position = UDim2.new(0.850000024, 0, 0.147, 0)
+Delete.Size = UDim2.new(0.111000001, 0, 0.699999988, 0)
+Delete.ZIndex = 5
+Delete.Image = "http://www.roblox.com/asset/?id=6302778252"
+
+Play.Name = "Play"
+Play.Parent = Example_3
+Play.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Play.BackgroundTransparency = 1.000
+Play.Position = UDim2.new(0.75, 0, 0.300000012, 0)
+Play.Size = UDim2.new(0.0680501089, 0, 0.429366052, 0)
+Play.ZIndex = 5
+Play.Image = "http://www.roblox.com/asset/?id=10392248278"
+
+SearchBar.Name = "SearchBar"
+SearchBar.Parent = MainFrame
+SearchBar.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+SearchBar.BorderSizePixel = 0
+SearchBar.Position = UDim2.new(0.0340000018, 0, 0.850000024, 0)
+SearchBar.Size = UDim2.new(0.930000007, 0, 0.075000003, 0)
+SearchBar.Visible = false
+SearchBar.ZIndex = 5
+SearchBar.Font = Enum.Font.SourceSans
+SearchBar.PlaceholderText = "Click here to Search"
+SearchBar.Text = ""
+SearchBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBar.TextSize = 14.000
+SearchBar.TextStrokeTransparency = 0.000
+
+ExamplePrompt.Name = "ExamplePrompt"
+ExamplePrompt.Parent = AnimePlayer
+ExamplePrompt.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+ExamplePrompt.BorderSizePixel = 2
+ExamplePrompt.Position = UDim2.new(0.100000001, 0, 0.349999994, 0)
+ExamplePrompt.Size = UDim2.new(0.800000012, 0, 0.300000012, 0)
+ExamplePrompt.Visible = false
+ExamplePrompt.ZIndex = 5
+
+Yes.Name = "Yes"
+Yes.Parent = ExamplePrompt
+Yes.BackgroundColor3 = Color3.fromRGB(31, 33, 37)
+Yes.BackgroundTransparency = 0.600
+Yes.BorderSizePixel = 0
+Yes.Position = UDim2.new(0.100000001, 0, 0.699999988, 0)
+Yes.Size = UDim2.new(0.200000003, 0, 0.200000003, 0)
+Yes.ZIndex = 6
+Yes.Font = Enum.Font.SourceSans
+Yes.Text = "Yes"
+Yes.TextColor3 = Color3.fromRGB(255, 255, 255)
+Yes.TextScaled = true
+Yes.TextSize = 16.000
+Yes.TextWrapped = true
+
+No.Name = "No"
+No.Parent = ExamplePrompt
+No.BackgroundColor3 = Color3.fromRGB(31, 33, 37)
+No.BackgroundTransparency = 0.600
+No.BorderSizePixel = 0
+No.Position = UDim2.new(0.699999988, 0, 0.699999988, 0)
+No.Size = UDim2.new(0.200000003, 0, 0.200000003, 0)
+No.ZIndex = 6
+No.Font = Enum.Font.SourceSans
+No.Text = "No"
+No.TextColor3 = Color3.fromRGB(255, 255, 255)
+No.TextScaled = true
+No.TextSize = 16.000
+No.TextWrapped = true
+
+PromptTitle.Name = "PromptTitle"
+PromptTitle.Parent = ExamplePrompt
+PromptTitle.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+PromptTitle.BackgroundTransparency = 1.000
+PromptTitle.BorderColor3 = Color3.fromRGB(27, 42, 53)
+PromptTitle.BorderSizePixel = 0
+PromptTitle.Position = UDim2.new(0.347637206, 0, 0, 0)
+PromptTitle.Size = UDim2.new(0.300000012, 0, 0.100000001, 0)
+PromptTitle.ZIndex = 7
+PromptTitle.Font = Enum.Font.SourceSans
+PromptTitle.Text = "Are you sure?"
+PromptTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+PromptTitle.TextSize = 20.000
+PromptTitle.TextStrokeTransparency = 0.000
+PromptTitle.TextWrapped = true
+PromptTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+PromptDescription.Name = "PromptDescription"
+PromptDescription.Parent = ExamplePrompt
+PromptDescription.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+PromptDescription.BackgroundTransparency = 1.000
+PromptDescription.BorderColor3 = Color3.fromRGB(27, 42, 53)
+PromptDescription.BorderSizePixel = 0
+PromptDescription.Position = UDim2.new(0.0340000018, 0, 0.119999997, 0)
+PromptDescription.Size = UDim2.new(0.930000007, 0, 0.550000012, 0)
+PromptDescription.ZIndex = 7
+PromptDescription.Font = Enum.Font.SourceSans
+PromptDescription.Text = "Are you sure you want to download \"Big Titty Oneesan Compilation Episode 133\"?"
+PromptDescription.TextColor3 = Color3.fromRGB(255, 255, 255)
+PromptDescription.TextScaled = true
+PromptDescription.TextSize = 20.000
+PromptDescription.TextStrokeTransparency = 0.000
+PromptDescription.TextWrapped = true
+
+local function GetEstimatedTime(AnimeName,LowestQuality)
+    if CommonResolutions[LowestQuality] and Stats["Mb/s"] ~= nil then
+        local FrameSize = LowestQuality * CommonResolutions[LowestQuality]
+        local OneSecond = FrameSize * 24
+        local Length = 160
+
+        local MALSearch = game:HttpGet("https://myanimelist.net/search/all?q="..string.gsub(AnimeName," ","%%20").."&cat=anime")
+        local SearchStart = string.find(MALSearch,"content%-result")
+        local LinkStart = string.find(MALSearch,"https://myanimelist.net/anime/",SearchStart)
+        local LinkEnd = string.find(MALSearch,'"',LinkStart) - 1
+        local Link = string.sub(MALSearch, LinkStart, LinkEnd)
+
+        local AnimePage = game:HttpGet(Link)
+        local SearchStart = string.find(AnimePage,"Duration%:")
+        local DurationStart = string.find(AnimePage,"%d",SearchStart)
+        local DurationEnd = string.find(AnimePage,"min.",DurationStart)-2
+        local Result = string.sub(AnimePage, DurationStart, DurationEnd)
+
+        local Numbers = string.gsub(Result, "[%a%p]+", "")
+        Numbers = string.gsub(Numbers,"  "," ")
+        Numbers = string.split(Numbers, " ")
+
+        if #Numbers == 2 then
+            Length = (Numbers[1] * 3600) + (Numbers[2] * 60)
+        elseif #Numbers == 1 then
+            Length = Numbers[1] * 60
+        end
+
+        local EstimatedSize = (OneSecond * Length) * 0.07
+        local EstimatedTime = (EstimatedSize / 8e+6) / Stats["Mb/s"]
+        local Extension = " seconds"
+        if EstimatedTime/60 >= 1 then
+            EstimatedTime = EstimatedTime/60
+            Extension = " minutes"
+        end
+
+        return EstimatedTime,EstimatedSize,Extension
+    end
+    return nil
+end
+
+local function SwitchFrame(SwitchTo)
+    for i,v in pairs(MainFrame:GetChildren()) do
+        if v ~= SwitchTo and string.find(v.ClassName, "Frame") and not string.find(v.Name, "Bar") then
+            v.Visible = false
+        end
+    end
+    SwitchTo.Visible = true
+    if SwitchTo == VideoFrame then
+        DownloadsButton.Image = "http://www.roblox.com/asset/?id=4458862490" -- 2876994164
+        SearchButton.Image = "http://www.roblox.com/asset/?id=6993462605"
+        BackButton.Image = "http://www.roblox.com/asset/?id=6993472329"
+        VideoBack.Visible = true
+    else
+        DownloadsButton.Image = "rbxassetid://10578187012"
+        SearchButton.Image = "rbxassetid://2512702176"
+        BackButton.Image = "rbxassetid://6972120335"
+        VideoBack.Visible = false
+        VideoFrame.Playing = false
+    end
+    if SwitchTo == Results then
+        SearchBar.Visible = true
+    else
+        SearchBar.Visible = false
+    end
+end
+
+local function RefreshDownloads()
+    for i,v in pairs(Downloads:GetChildren()) do
+        if string.find(v.ClassName, "Text") and not string.find(v.Name, "Example") then
+            v:Destroy()
+        end
+    end
+    for i,v in pairs(Stats["Library"]) do
+        local NewSpacer = SpacerExample:Clone()
+        NewSpacer.Name = i
+        NewSpacer.Text = i
+        NewSpacer.Visible = true
+        NewSpacer.Parent = Downloads
+        for x,y in pairs(v) do
+            local NewEntry = Example_3:Clone()
+            NewEntry.Text = string.gsub(y,AnimeFolder,"")
+            NewEntry.Name = string.gsub(y,AnimeFolder,"")
+            NewEntry.AnimePath.Value = y
+            NewEntry.Visible = true
+            NewEntry.Parent = Downloads
+            NewEntry.Delete.MouseButton1Click:Connect(function()
+                delfile(NewEntry.AnimePath.Value)
+                writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
+                RefreshDownloads()
+            end)
+            NewEntry.Play.MouseButton1Click:Connect(function()
+                SwitchFrame(VideoFrame)
+                VideoFrame.Video = getsynasset(NewEntry.AnimePath.Value)
+                VideoFrame.Playing = true
+                MainFrame.Size = UDim2.new(0.300000012, 0, 0.4, 0)
+                TopBar.Size = UDim2.new(0.300000012, 0, 0.0352893025, 0)
+--[[
+                MainFrame:TweenSize(
+                    UDim2.new(0.300000012, 0, 0.4, 0),
+                    Enum.EasingDirection.In,
+                    Enum.EasingStyle.Linear,
+                    1
+                )
+                TopBar:TweenSize(
+                    UDim2.new(0.300000012, 0, OriginalTop.Y.Scale, 0), --UDim2.fromOffset(Main.X, Main.Y),
+                    Enum.EasingDirection.In,
+                    Enum.EasingStyle.Linear,
+                    1
+                )
+
+--]]
+
+            end)
+        end
+    end
+    local NewSpacer = SpacerExample:Clone()
+    NewSpacer.Name = "All Videos"
+    NewSpacer.Text = "All Videos"
+    NewSpacer.Visible = true
+    NewSpacer.Parent = Downloads
+    for i,v in pairs(listfiles(AnimeFolder)) do
+        local NewEntry = Example_3:Clone()
+        NewEntry.Text = string.gsub(v,AnimeFolder,"")
+        NewEntry.Name = string.gsub(v,AnimeFolder,"")
+        NewEntry.AnimePath.Value = v
+        NewEntry.Visible = true
+        NewEntry.Parent = Downloads
+        NewEntry.Delete.MouseButton1Click:Connect(function()
+            delfile(NewEntry.AnimePath.Value)
+            writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
+            RefreshDownloads()
+        end)
+        NewEntry.Play.MouseButton1Click:Connect(function()
+            SwitchFrame(VideoFrame)
+            VideoFrame.Video = getsynasset(NewEntry.AnimePath.Value)
+            VideoFrame.Playing = true
+            MainFrame:TweenSize(
+                UDim2.new(0.300000012, 0, 0.4, 0),
+                Enum.EasingDirection.In,
+                Enum.EasingStyle.Linear,
+                1
+            )
+        end)
+    end
+end
+
+local function DownloadAnime(Tag,AnimeName,Episode)
+    if isfile(AnimeFolder..AnimeName.." (Episode "..tostring(Episode)..").webm") then
+        game.StarterGui:SetCore("SendNotification", {
+            Title = 'ERROR';
+            Text = "You already have this episode downloaded!";
+            Icon = "rbxassetid://2541869220";
+            Duration = 7;
+        })
+        return false,0,0
+    end
+    local content = syn.request(
+        {
+            Url = "https://fembed-hd.com/api/source/"..Tag,
+            Method = "POST",	
+            Headers = {
+                ["Content-Type"] = "application/json",
+            },
+            Body = game:GetService("HttpService"):JSONEncode({})
+        }
+    )
+    local Response = game:getService("HttpService"):JSONDecode(content.Body)
+    local LowestQuality = math.huge
+    local ToDownload
+    if Response.data ~= nil then
+        for i,v in pairs(Response.data) do
+            if v.label ~= nil and v.file ~= nil then
+                local Based,Cringe = string.gsub(v.label, "%D+", "")
+                local Quality = tonumber(Based)
+                if Quality ~= nil and Quality == 720 then-- and Quality < LowestQuality then
+                    ToDownload = v.file
+                    LowestQuality = Quality
+                end
+            end
+        end
+    else
+        game.StarterGui:SetCore("SendNotification", {
+            Title = 'ERROR';
+            Text = "Failed to get download.";
+            Icon = "rbxassetid://2541869220";
+            Duration = 7;
+        })
+        return false,0,0
+    end
+    local EstimatedTime,EstimatedSize,Extension = GetEstimatedTime(AnimeName,LowestQuality)
+    if EstimatedTime ~= nil then
+        game.StarterGui:SetCore("SendNotification", {
+            Title = 'Downloading....';
+            Text = "Estimated time: "..tostring(EstimatedTime)..Extension;
+            Icon = "rbxassetid://2541869220";
+            Duration = 7;
+        })
+    end
+    local Time = tick()
+    local File
+    local Success = pcall(function()File = game:HttpGet(ToDownload)end)
+    if Success then
+        local Time = tostring(tick() - Time)
+        writefile(AnimeFolder..AnimeName.." (Episode "..tostring(Episode)..").webm",File)
+        game.StarterGui:SetCore("SendNotification", {
+            Title = 'Done!';
+            Text = "Anime is now downloaded. (Took "..string.sub(Time,1,4).." seconds)";
+            Icon = "rbxassetid://2541869220";
+            Duration = 3;
+        })
+        if Stats["Library"][AnimeName] == nil then
+            Stats["Library"][AnimeName] = {}
+        end
+        Stats["Library"][AnimeName][tonumber(Episode)] = AnimeFolder..AnimeName.." (Episode "..tostring(Episode)..").webm"
+        writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
+        RefreshDownloads()
+        return Success, math.floor(Time), #File -- Success, Time, Size
+    else
+        game.StarterGui:SetCore("SendNotification", {
+            Title = 'ERROR';
+            Text = "Failed to download. (Not enough storage?) (Too big of a file?)";
+            Icon = "rbxassetid://2541869220";
+            Duration = 7;
+        })
+        return false,0,0
+    end
+end
+
+if Stats["Mb/s"] == nil then
+    game.StarterGui:SetCore("SendNotification", {
+        Title = 'Checking DL Speed';
+        Text = "Checking your download speed, because it's your first injection.";
+        Icon = "rbxassetid://2541869220";
+        Duration = 7;
+    })
+    local Success,Time,Size = DownloadAnime("qznrxie1pe4qm-r","youjo-shenki","test")
+    local Megabytes = Size/1000000
+    local Rate = Megabytes/Time
+    Stats["Mb/s"] = tonumber(string.sub(tostring(Rate),1,5))
+    writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
+    if isfile(AnimeFolder.."test.webm") then
+        delfile(AnimeFolder.."test.webm")
+    end
+end
+
+local function ConfirmPrompt(Title,Body,ConfirmFunction)
+    local NewPrompt = ExamplePrompt:Clone()
+    NewPrompt.Name = "NewPrompt"
+    NewPrompt.PromptTitle.Text = Title
+    NewPrompt.PromptDescription.Text = Body
+    NewPrompt.Visible = true
+    NewPrompt.No.MouseButton1Click:Connect(function()
+        NewPrompt:Destroy()
+    end)
+    NewPrompt.Yes.MouseButton1Click:Connect(ConfirmFunction)
+    NewPrompt.Parent = MainFrame
+end
+
+Close.MouseButton1Click:Connect(function()
+    local Files = listfiles(TempFolder)
+    for i,v in pairs(Files) do
+        delfile(v)
+    end
+    AnimePlayer:Destroy()
+end)
+
+Minimize.MouseButton1Click:Connect(function()
+    if Minimizing then
+        return
+    end
+    Minimizing = true
+    if Minimized.Value == false then
+        MainFrame:TweenSize(
+            UDim2.new(TopBar.Size.X,UDim.new(0,0)),
+            Enum.EasingDirection.In,
+            Enum.EasingStyle.Linear,
+            1
+        )
+        Minimized.Value = true
+        if VideoFrame.Visible == true then
+            VideoFrame.Playing = false
+        end
+    else
+        MainFrame:TweenSize(
+            UDim2.new(TopBar.Size.X,UDim.new(0.7,0)),
+            Enum.EasingDirection.In,
+            Enum.EasingStyle.Linear,
+            1
+        )
+        Minimized.Value = false
+        if VideoFrame.Visible == true then
+            VideoFrame.Playing = true
+        end
+    end
+    Minimizing = false
+end)
+
+VideoBack.MouseButton1Click:Connect(function()
+    if VideoBack.Visible then
+        MainFrame:TweenSize(
+            UDim2.new(TopBar.Size.X,UDim.new(0.7,0)),
+            Enum.EasingDirection.In,
+            Enum.EasingStyle.Linear,
+            0.2
+        )
+        SwitchFrame(Downloads)
+    end
+end)
+
+Drag.MouseEnter:Connect(function()
+    MouseOnTopbar = true
+end)
+Drag.MouseLeave:Connect(function()
+    MouseOnTopbar = false
+end)
+
+Resize.MouseEnter:Connect(function()
+    MouseOnResize = true
+end)
+Resize.MouseLeave:Connect(function()
+    MouseOnResize = false
+end)
+
+
+UserInputService.InputBegan:Connect(function(inputObject, gameProcessedEvent)
+    if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+        if MouseOnTopbar then
+            local XDifference = Mouse.X - TopBar.AbsolutePosition.X
+            local YDifference = Mouse.Y - TopBar.AbsolutePosition.Y
+            repeat
+                MainFrame:TweenPosition(
+                    UDim2.new(0,Mouse.X - XDifference,0,Mouse.Y - YDifference),
+                    Enum.EasingDirection.In,
+                    Enum.EasingStyle.Linear,
+                    0.1
+                )
+                TopBar:TweenPosition(
+                    UDim2.new(0,Mouse.X - XDifference,0,Mouse.Y - YDifference),
+                    Enum.EasingDirection.In,
+                    Enum.EasingStyle.Linear,
+                    0.1
+                )
+    
+                --MainFrame.Position = UDim2.new(0,Mouse.X,0,Mouse.Y)
+                --TopBar.Position = UDim2.new(0,Mouse.X,0,Mouse.Y+30)
+                task.wait()
+            until not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+        elseif MouseOnResize then
+            local OriginalMouse = Vector2.new(Mouse.X, Mouse.Y)
+            local MainSize = MainFrame.AbsoluteSize
+            local TopSize = TopBar.AbsoluteSize
+            repeat
+                local NewMouse = Vector2.new(Mouse.X, Mouse.Y)
+                local NewMoved = Vector2.new(NewMouse.X - OriginalMouse.X, NewMouse.Y - OriginalMouse.Y)
+
+                local Main = MainSize + NewMoved
+                MainFrame:TweenSize(
+                    UDim2.fromOffset(Main.X, Main.Y),
+                    Enum.EasingDirection.In,
+                    Enum.EasingStyle.Linear,
+                    0.1
+                )
+
+                local Top = TopSize + NewMoved
+                TopBar:TweenSize(
+                    UDim2.fromOffset(Top.X, TopSize.Y),
+                    Enum.EasingDirection.In,
+                    Enum.EasingStyle.Linear,
+                    0.1
+                )
+
+    
+                --MainFrame.Position = UDim2.new(0,Mouse.X,0,Mouse.Y)
+                --TopBar.Position = UDim2.new(0,Mouse.X,0,Mouse.Y+30)
+                task.wait()
+            until not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+        end
+    end
+end)
+
+SearchButton.MouseButton1Click:Connect(function()
+    if not VideoFrame.Visible then
+        SwitchFrame(Results)
+    else
+        VideoFrame.TimePosition = VideoFrame.TimePosition + 15
+    end
+end)
+
+DownloadsButton.MouseButton1Click:Connect(function()
+    if not VideoFrame.Visible then
+        RefreshDownloads()
+        SwitchFrame(Downloads)
+    else
+        if DownloadsButton.Image == "http://www.roblox.com/asset/?id=4458862490" then
+            VideoFrame.Playing = false
+            DownloadsButton.Image = "http://www.roblox.com/asset/?id=2876994160"
+        elseif DownloadsButton.Image == "http://www.roblox.com/asset/?id=2876994160" then
+            VideoFrame.Playing = true
+            DownloadsButton.Image = "http://www.roblox.com/asset/?id=4458862490"
+        end
+    end
+end)
+
+BackButton.MouseButton1Click:Connect(function()
+    if Details.Visible == true then
+        SwitchFrame(Results)
+    elseif Results.Visible == true then
+        SwitchFrame(Downloads)
+    elseif VideoFrame.Visible then
+        VideoFrame.TimePosition = VideoFrame.TimePosition - 15
+    end
+end)
+
+SearchBar.FocusLost:Connect(function(enterpressed, input)
+    if not enterpressed then
+        return
+    end
+    local Files = listfiles(TempFolder)
+    for i,v in pairs(Files) do
+        delfile(v)
+    end
+    for i,v in pairs(Results:GetChildren()) do
+        if v:IsA("ImageButton") and v.Name ~= "Example" then
+            v:Destroy()
+        end
+    end
+    SwitchFrame(Results)
+    local ToSearch = SearchBar.Text
+    ToSearch = string.gsub(ToSearch," ","%%20")
+    local Search = game:HttpGet(BaseUrl.."/search.html?keyword="..ToSearch)
+    local SearchFrom = string.find(Search, 'class="items"')
+    repeat 
+        local First = string.find(Search,'class="img"',SearchFrom)
+        if First ~= nil then
+            local LinkStart = string.find(Search,"/category/",First)
+            local LinkEnd = string.find(Search,'"',LinkStart)-1
+            local Link = BaseUrl..string.sub(Search,LinkStart,LinkEnd)
+
+
+            local NameStart = string.find(Search,'title="',LinkEnd) + 7
+            local NameEnd = string.find(Search,'"',NameStart)-1
+            local Name = string.sub(Search,NameStart,NameEnd)
+
+            local ImageStart = string.find(Search,'src="',NameEnd)+5
+            local ImageEnd = string.find(Search,'"',ImageStart)-1
+            local Image = string.sub(Search,ImageStart,ImageEnd)
+
+            writefile(TempFolder..Name..".jpg",game:HttpGet(Image))
+
+            local NewResult = Example:Clone()
+            NewResult.Parent = Results
+            NewResult.Image = getsynasset(TempFolder..Name..".jpg")
+            NewResult.Visible = true
+            NewResult.Name = Name
+            NewResult.Title.Text = Name
+            NewResult.Link.Value = Link
+             
+            NewResult.MouseButton1Click:Connect(function()
+                for i,v in pairs(Episodes:GetChildren()) do
+                    if v:IsA("TextButton") and not string.find(v.Name, "Example") then
+                        v:Destroy()
+                    end
+                end
+                SwitchFrame(Details)
+                Details.Link.Value = Link
+                Details.Title.Text = Name
+                Details.ImageLabel.Image = getsynasset(TempFolder..Name..".jpg")
+
+                local AnimePage = game:HttpGet(Link)
+                local SearchStart = string.find(AnimePage, "Plot Summary")
+                local DescStart = string.find(AnimePage,">",SearchStart)+1
+                local DescEnd = string.find(AnimePage,"</p>",DescStart)-1
+                local Desc = string.sub(AnimePage,DescStart,DescEnd)
+                Details.Description.Text = Desc
+                local FirstEpStart = string.find(AnimePage,"ep_start = '",DescEnd)+12
+                local FirstEpEnd = string.find(AnimePage,"'",FirstEpStart)-1
+                local FirstEp = string.sub(AnimePage,FirstEpStart,FirstEpEnd)
+                local LastEpStart = string.find(AnimePage,"ep_end = '",DescEnd)+10
+                repeat
+                    local NewLastEp = string.find(AnimePage,"ep_end = '",LastEpStart)
+                    if NewLastEp ~= nil then
+                        LastEpStart = NewLastEp+10
+                    end
+                    task.wait()
+                until NewLastEp == nil
+                local LastEpEnd = string.find(AnimePage,"'",LastEpStart)-1
+                local LastEp = string.sub(AnimePage,LastEpStart,LastEpEnd)
+                if FirstEp == "0" then
+                    FirstEp = "1"
+                end
+                for i = tonumber(FirstEp),tonumber(LastEp) do
+                    local NewEpisode = Episodes.Example:Clone()
+                    NewEpisode.Name = tostring(i)
+                    NewEpisode.Parent = Episodes
+                    NewEpisode.Text = "Episode "..tostring(i).." (click to download)"
+                    NewEpisode.Visible = true
+                    NewEpisode.MouseButton1Click:Connect(function()
+                        local LinkName = string.gsub(Details.Link.Value, BaseUrl.."/category/","")
+                        local EpisodeLink = BaseUrl.."/"..LinkName.."-episode-"..NewEpisode.Name
+                        local EstimatedTime,EstimatedSize,Extension = GetEstimatedTime(Details.Title.Text,720)
+                        local TimeAddOn = ""
+                        if EstimatedTime ~= nil then
+                            TimeAddOn = "\n(Estimated download time: "..EstimatedTime..Extension..")"
+                        end
+                        local PromptBody = 'Are you sure you want to download "'..Details.Title.Text..' Episode '..NewEpisode.Name.."'? "..TimeAddOn
+                        ConfirmPrompt("Are you sure?",PromptBody,function()
+                            if MainFrame:FindFirstChild("NewPrompt") then
+                                MainFrame.NewPrompt:Destroy()
+                            end
+                            local EpisodePage = game:HttpGet(EpisodeLink)
+                            local TagStart = string.find(EpisodePage,"https://fembed%-hd%.com/v/")+#"https://fembed-hd.com/v/"
+                            local TagEnd = string.find(EpisodePage,'"',TagStart)-1
+                            local Tag = string.sub(EpisodePage,TagStart,TagEnd)
+                            DownloadAnime(Tag,Details.Title.Text,NewEpisode.Name)
+                        end)
+                    end)
+                end
+            end)
+            SearchFrom = ImageEnd+2
+        end
+        task.wait()
+    until First == nil or Results.Visible == false
+end)
+
+RefreshDownloads()
+
+--[[
+local ScreenGui = Instance.new("ScreenGui",game.CoreGui)
+local VideoFrame = Instance.new("VideoFrame",ScreenGui)
+VideoFrame.Video = getsynasset(AnimeFolder..'youjo.webm')
+VideoFrame.Playing = true
+VideoFrame.Size = UDim2.new(0,600,0,315)
+VideoFrame.Visible = true
+--]]
+
+
+--local Success,Time,Size = DownloadAnime("16rnjuj5ezwzm7w","YOUJO SENKI","youjo")
+--print(Success,Time,Size)
+--local Success,Time,Size = DownloadAnime("qznrxie1pe4qm-r","YOUJO SENKI","youjo")
