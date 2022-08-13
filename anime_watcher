@@ -697,9 +697,9 @@ local function DownloadAnime(Tag,AnimeName,Episode)
         if Stats["Library"][AnimeName] == nil then
             Stats["Library"][AnimeName] = {}
         end
-        pcall(function()
+        if Episode ~= "test" then
             Stats["Library"][AnimeName][tonumber(Episode)] = AnimeFolder..AnimeName.." (Episode "..tostring(Episode)..").webm"
-        end)
+        end
         writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
         RefreshDownloads()
         return Success, math.floor(Time), #File -- Success, Time, Size
