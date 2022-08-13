@@ -687,14 +687,18 @@ local function DownloadAnime(Tag,AnimeName,Episode)
     local Success = pcall(function()File = game:HttpGet(ToDownload)end)
     if Success then
         local Time = tostring(tick() - Time)
-        writefile(AnimeFolder..AnimeName.." (Episode "..tostring(Episode)..").webm",File)
+        if Episode ~= "test" then
+            writefile(AnimeFolder..AnimeName.." (Episode "..tostring(Episode)..").webm",File)
+        else
+            writefile(AnimeFolder.."test.webm",File)
+        end
         game.StarterGui:SetCore("SendNotification", {
             Title = 'Done!';
             Text = "Anime is now downloaded. (Took "..string.sub(Time,1,4).." seconds)";
             Icon = "rbxassetid://2541869220";
             Duration = 3;
         })
-        if Stats["Library"][AnimeName] == nil then
+        if Stats["Library"][AnimeName] == nil and Episode ~= "test" then
             Stats["Library"][AnimeName] = {}
         end
         if Episode ~= "test" then
