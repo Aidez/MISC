@@ -581,6 +581,11 @@ RefreshDownloads = function()
         NewSpacer.Text = "You have no anime downloaded! Press the search button to find some."
         NewSpacer.Visible = true
         NewSpacer.Parent = Downloads
+        local AnotherNewSpacer = SpacerExample:Clone()
+        AnotherNewSpacer.Name = "No Videos"
+        AnotherNewSpacer.Text = "(Or put any 720p videos you wanna play in YourExploit/Workspace/"..AnimeFolder..")"
+        AnotherNewSpacer.Visible = true
+        AnotherNewSpacer.Parent = Downloads
         return
     end
     for i,v in pairs(Stats["Library"]) do
