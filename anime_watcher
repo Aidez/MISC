@@ -527,6 +527,8 @@ local function GetEstimatedTime(AnimeName,LowestQuality)
     return nil
 end
 
+local RefreshDownloads
+
 local function SwitchFrame(SwitchTo)
     for i,v in pairs(MainFrame:GetChildren()) do
         if v ~= SwitchTo and string.find(v.ClassName, "Frame") and not string.find(v.Name, "Bar") then
@@ -551,13 +553,35 @@ local function SwitchFrame(SwitchTo)
     else
         SearchBar.Visible = false
     end
+    if SwitchTo == Downloads then
+        RefreshDownloads()
+    end
 end
 
-local function RefreshDownloads()
+RefreshDownloads = function()
     for i,v in pairs(Downloads:GetChildren()) do
         if string.find(v.ClassName, "Text") and not string.find(v.Name, "Example") then
             v:Destroy()
         end
+    end
+    for i,v in pairs(Stats["Library"]) do
+        for x,y in pairs(v) do
+            if not isfile(y) then
+                table.remove(Stats["Library"][i],x)
+            end
+        end
+        if #v == 0 then
+            Stats["Library"][i] = nil
+        end
+    end
+    writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
+    if #Stats["Library"] == 0 and #listfiles(AnimeFolder) == 0 then
+        local NewSpacer = SpacerExample:Clone()
+        NewSpacer.Name = "No Videos"
+        NewSpacer.Text = "You have no anime downloaded! Press the search button to find some."
+        NewSpacer.Visible = true
+        NewSpacer.Parent = Downloads
+        return
     end
     for i,v in pairs(Stats["Library"]) do
         local NewSpacer = SpacerExample:Clone()
@@ -574,7 +598,6 @@ local function RefreshDownloads()
             NewEntry.Parent = Downloads
             NewEntry.Delete.MouseButton1Click:Connect(function()
                 delfile(NewEntry.AnimePath.Value)
-                writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
                 RefreshDownloads()
             end)
             NewEntry.Play.MouseButton1Click:Connect(function()
