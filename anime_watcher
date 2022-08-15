@@ -21,6 +21,9 @@ local CommonResolutions = {
     [360] = 640;
 }
 
+local httprequest = request or syn.request
+local getasset = getcustomasset or getsynasset
+
 if isfolder(RootFolder) then
     if not isfolder(AnimeFolder) then
         makefolder(AnimeFolder)
@@ -576,7 +579,7 @@ local function RefreshDownloads()
             end)
             NewEntry.Play.MouseButton1Click:Connect(function()
                 SwitchFrame(VideoFrame)
-                VideoFrame.Video = getsynasset(NewEntry.AnimePath.Value)
+                VideoFrame.Video = getasset(NewEntry.AnimePath.Value)
                 VideoFrame.Playing = true
                 MainFrame.Size = UDim2.new(0.300000012, 0, 0.4, 0)
                 TopBar.Size = UDim2.new(0.300000012, 0, 0.0352893025, 0)
@@ -618,7 +621,7 @@ local function RefreshDownloads()
         end)
         NewEntry.Play.MouseButton1Click:Connect(function()
             SwitchFrame(VideoFrame)
-            VideoFrame.Video = getsynasset(NewEntry.AnimePath.Value)
+            VideoFrame.Video = getasset(NewEntry.AnimePath.Value)
             VideoFrame.Playing = true
             MainFrame:TweenSize(
                 UDim2.new(0.300000012, 0, 0.4, 0),
@@ -640,7 +643,7 @@ local function DownloadAnime(Tag,AnimeName,Episode)
         })
         return false,0,0
     end
-    local content = syn.request(
+    local content = httprequest(
         {
             Url = "https://fembed-hd.com/api/source/"..Tag,
             Method = "POST",	
@@ -683,8 +686,16 @@ local function DownloadAnime(Tag,AnimeName,Episode)
         })
     end
     local Time = tick()
-    local File
-    local Success = pcall(function()File = game:HttpGet(ToDownload)end)
+    local GrabFile = httprequest(
+        {
+            Url = ToDownload,
+            Method = "GET",	
+            Headers = {},
+        }
+    )
+    local Success = GrabFile.Success
+    local File = GrabFile.Body
+    --local Success = pcall(function()File = game:HttpGet(ToDownload)end)
     if Success then
         local Time = tostring(tick() - Time)
         if Episode ~= "test" then
@@ -941,7 +952,7 @@ SearchBar.FocusLost:Connect(function(enterpressed, input)
 
             local NewResult = Example:Clone()
             NewResult.Parent = Results
-            NewResult.Image = getsynasset(TempFolder..Name..".jpg")
+            NewResult.Image = getasset(TempFolder..Name..".jpg")
             NewResult.Visible = true
             NewResult.Name = Name
             NewResult.Title.Text = Name
@@ -956,7 +967,7 @@ SearchBar.FocusLost:Connect(function(enterpressed, input)
                 SwitchFrame(Details)
                 Details.Link.Value = Link
                 Details.Title.Text = Name
-                Details.ImageLabel.Image = getsynasset(TempFolder..Name..".jpg")
+                Details.ImageLabel.Image = getasset(TempFolder..Name..".jpg")
 
                 local AnimePage = game:HttpGet(Link)
                 local SearchStart = string.find(AnimePage, "Plot Summary")
