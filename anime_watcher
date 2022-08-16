@@ -75,6 +75,7 @@ local Downloads = Instance.new("ScrollingFrame")
 local UIListLayout_2 = Instance.new("UIListLayout")
 local SpacerExample = Instance.new("TextLabel")
 local Example_3 = Instance.new("TextButton")
+local Progress = Instance.new("Frame")
 local Delete = Instance.new("ImageButton")
 local Play = Instance.new("ImageButton")
 local SearchBar = Instance.new("TextBox")
@@ -380,6 +381,13 @@ Example_3.TextXAlignment = Enum.TextXAlignment.Left
 local AnimePath = Instance.new("StringValue",Example_3)
 AnimePath.Name = "AnimePath"
 
+Progress.Name = "Progress"
+Progress.Parent = Example_3
+Progress.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Progress.BackgroundTransparency = 0.900
+Progress.Size = UDim2.new(0, 0, 1, 0)
+Progress.Visible = false
+
 Delete.Name = "Delete"
 Delete.Parent = Example_3
 Delete.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -516,13 +524,14 @@ local function GetEstimatedTime(AnimeName,LowestQuality)
 
         local EstimatedSize = (OneSecond * Length) * 0.07
         local EstimatedTime = (EstimatedSize / 8e+6) / Stats["Mb/s"]
+        local TimeInSeconds = EstimatedTime
         local Extension = " seconds"
         if EstimatedTime/60 >= 1 then
             EstimatedTime = EstimatedTime/60
             Extension = " minutes"
         end
 
-        return EstimatedTime,EstimatedSize,Extension
+        return EstimatedTime,EstimatedSize,Extension,TimeInSeconds
     end
     return nil
 end
@@ -560,7 +569,10 @@ end
 
 RefreshDownloads = function()
     for i,v in pairs(Downloads:GetChildren()) do
-        if string.find(v.ClassName, "Text") and not string.find(v.Name, "Example") then
+        if string.find(v.ClassName, "Text") and not string.find(v.Name, "Example") and not string.find(v.Name, "Progress") then
+            v:Destroy()
+        end
+        if string.find(v.Name, "Progress") and isfile(v.AnimePath.Value) then
             v:Destroy()
         end
     end
@@ -704,7 +716,7 @@ local function DownloadAnime(Tag,AnimeName,Episode)
         })
         return false,0,0
     end
-    local EstimatedTime,EstimatedSize,Extension = GetEstimatedTime(AnimeName,LowestQuality)
+    local EstimatedTime,EstimatedSize,Extension,Seconds = GetEstimatedTime(AnimeName,LowestQuality)
     if EstimatedTime ~= nil then
         game.StarterGui:SetCore("SendNotification", {
             Title = 'Downloading....';
@@ -713,7 +725,29 @@ local function DownloadAnime(Tag,AnimeName,Episode)
             Duration = 7;
         })
     end
+    local Path = AnimeFolder..AnimeName.." (Episode "..tostring(Episode)..").webm"
     local Time = tick()
+    if Episode ~= "test" then
+print(Seconds)
+        local ProgressIndicator = Example_3:Clone()
+        ProgressIndicator.Text = string.gsub(Path,AnimeFolder,"")
+        ProgressIndicator.Name = string.gsub(Path,AnimeFolder,"").."Progress"
+        ProgressIndicator.AnimePath.Value = Path
+        ProgressIndicator.Visible = true
+        ProgressIndicator.Delete:Destroy()
+        ProgressIndicator.Play:Destroy()
+        ProgressIndicator.AnimePath.Value = Path
+        ProgressIndicator.Parent = Downloads
+        ProgressIndicator.Progress.Visible = true
+        spawn(function()
+            ProgressIndicator.Progress:TweenSize(
+                UDim2.new(0.95,0,1,0),
+                Enum.EasingDirection.In,
+                Enum.EasingStyle.Linear,
+                Seconds
+            )
+        end)
+    end
     local GrabFile = httprequest(
         {
             Url = ToDownload,
@@ -741,7 +775,7 @@ local function DownloadAnime(Tag,AnimeName,Episode)
             Stats["Library"][AnimeName] = {}
         end
         if Episode ~= "test" then
-            Stats["Library"][AnimeName][tonumber(Episode)] = AnimeFolder..AnimeName.." (Episode "..tostring(Episode)..").webm"
+            Stats["Library"][AnimeName][tonumber(Episode)] = Path
         end
         writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
         RefreshDownloads()
