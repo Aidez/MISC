@@ -1006,7 +1006,7 @@ local function SearchFor(ToSearch)
                     local MangaPage = game:HttpGet(Link)
                     local SearchStart = string.find(MangaPage, 'name="description"')
 
-                    local DescStart = string.find(MangaPage,"<h3>Description :</h3>:",SearchStart)+#"<h3>Description :</h3>"
+                    local DescStart = string.find(MangaPage,"<h3>Description :</h3>",SearchStart)+#"<h3>Description :</h3>"
                     local DescEnd = string.find(MangaPage,'<',DescStart)-1
                     local Desc = string.sub(MangaPage,DescStart,DescEnd)
                     Desc = string.gsub(Desc,"&ldquo;",'"')
