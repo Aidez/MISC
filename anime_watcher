@@ -1082,13 +1082,18 @@ GetEpisodes = function(Page,FirstEp,LastEp,SeriesName)
                                         
                                     }
                                 )--TempFolder..ImageLink
-                                writefile(PagesFolder..Details.Title.Text..tostring(CurrentPage)..".jpg",ImageRequest.Body)
+                                local ToName = string.gsub(ImageLink,"/","")
+                                ToName = string.gsub(ToName,":","")
+                                ToName = string.gsub(ToName,".jpg","")
+                                ToName = string.gsub(ToName,"%.","")
+                                ToName = string.gsub(ToName,"_","")
+                                writefile(PagesFolder..ToName..".jpg",ImageRequest.Body)
                                 local NewImage = ReaderExample:Clone()
                                 NewImage.Name = "Page"
                                 if ReadMode == "Webtoon" then
                                     NewImage.Size = UDim2.new(1,0,0,15000)
                                 end
-                                NewImage.Image = getasset(PagesFolder..Details.Title.Text..tostring(CurrentPage)..".jpg")
+                                NewImage.Image = getasset(PagesFolder..ToName..".jpg")
                                 NewImage.Visible = true
                                 NewImage.Parent = MangaReader
                                 CurrentPage = CurrentPage + 1
