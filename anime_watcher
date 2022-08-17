@@ -400,6 +400,7 @@ Downloads.ZIndex = 3
 Downloads.CanvasSize = UDim2.new(1, 0, 1, 0)
 Downloads.HorizontalScrollBarInset = Enum.ScrollBarInset.Always
 Downloads.ScrollBarThickness = 0
+Downloads.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 UIListLayout_2.Parent = Downloads
 UIListLayout_2.SortOrder = Enum.SortOrder.LayoutOrder
