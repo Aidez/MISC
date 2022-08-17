@@ -5,6 +5,7 @@ end
 local RootFolder = "AnimeWatcher/"
 local AnimeFolder = "AnimeWatcher/Anime/"
 local TempFolder = "AnimeWatcher/TempFiles/"
+local ThumbnailsFolder = "AnimeWatcher/Thumbnails/"
 local AnimeBaseUrl = "https://gogoanime.lu"
 local MangaBaseUrl = "https://manganato.com"
 
@@ -15,6 +16,10 @@ local Player = game.Players.LocalPlayer
 local Mouse = game.Players.LocalPlayer:GetMouse()
 
 local Mode = "Anime"
+
+local LastSearch = ""
+local LastFrame = nil
+
 local Minimizing = false
 local MouseOnTopbar = false
 local MouseOnResize = false
@@ -37,10 +42,14 @@ if isfolder(RootFolder) then
     if not isfolder(TempFolder) then
         makefolder(TempFolder)
     end
+    if not isfolder(ThumbnailsFolder) then
+        makefolder(ThumbnailsFolder)
+    end
 else
     makefolder(RootFolder)
     makefolder(AnimeFolder)
     makefolder(TempFolder)
+    makefolder(ThumbnailsFolder)
 end
 
 local Stats
@@ -82,7 +91,8 @@ local ImageLabel = Instance.new("ImageLabel")
 local Description = Instance.new("TextLabel")
 local Title_3 = Instance.new("TextLabel")
 local Downloads = Instance.new("ScrollingFrame")
-local UIListLayout_2 = Instance.new("UIListLayout")
+local DownloadsListLayout = Instance.new("UIListLayout")
+local DownloadsGridLayout = Instance.new("UIGridLayout")
 local SpacerExample = Instance.new("TextLabel")
 local Example_3 = Instance.new("TextButton")
 local Progress = Instance.new("Frame")
@@ -108,6 +118,7 @@ MainFrame.Position = UDim2.new(0.349961013, 0, 0.174289256, 0)
 MainFrame.Size = UDim2.new(0.300000012, 0, 0.699999988, 0)
 
 local Minimized = Instance.new("BoolValue",MainFrame)
+Minimized.Name = "Minimized"
 Minimized.Value = false
 
 VideoFrame.Parent = MainFrame
@@ -174,10 +185,11 @@ Results.Position = UDim2.new(0.0340000018, 0, 0.075000003, 0)
 Results.Size = UDim2.new(0.930000007, 0, 0.850000024, 0)
 Results.Visible = false
 Results.ZIndex = 3
-Results.CanvasSize = UDim2.new(1, 0, 1, 0)
-Results.HorizontalScrollBarInset = Enum.ScrollBarInset.Always
+Results.CanvasSize = UDim2.new(1, 0, 0, 0)
+Results.HorizontalScrollBarInset = Enum.ScrollBarInset.None
 Results.ScrollBarThickness = 0
 Results.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Results.ScrollingDirection = Enum.ScrollingDirection.Y
 
 UIGridLayout.Parent = Results
 UIGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -316,6 +328,7 @@ AddToLibrary.TextScaled = true
 AddToLibrary.TextSize = 14.000
 AddToLibrary.TextWrapped = true
 
+
 Episodes.Name = "Episodes"
 Episodes.Parent = Details
 Episodes.Active = true
@@ -324,10 +337,12 @@ Episodes.BorderSizePixel = 0
 Episodes.Position = UDim2.new(0, 0, 0.649999976, 0)
 Episodes.Size = UDim2.new(1, 0, 0.349999994, 0)
 Episodes.ZIndex = 4
-Episodes.CanvasSize = UDim2.new(1, 0, 1, 0)
-Episodes.HorizontalScrollBarInset = Enum.ScrollBarInset.Always
+Episodes.CanvasSize = UDim2.new(1, 0, 0, 0)
+Episodes.VerticalScrollBarInset = Enum.ScrollBarInset.None
+Episodes.HorizontalScrollBarInset = Enum.ScrollBarInset.None
 Episodes.ScrollBarThickness = 8
 Episodes.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Episodes.ScrollingDirection = Enum.ScrollingDirection.Y
 
 UIListLayout.Parent = Episodes
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -344,6 +359,7 @@ Example_2.TextColor3 = Color3.fromRGB(255, 255, 255)
 Example_2.TextSize = 16.000
 Example_2.TextWrapped = true
 Example_2.TextXAlignment = Enum.TextXAlignment.Left
+Example_2.AutomaticSize = Enum.AutomaticSize.Y
 
 local ChapterLink = Instance.new("StringValue",Example_2)
 ChapterLink.Name = "ChapterLink"
@@ -397,13 +413,19 @@ Downloads.BorderSizePixel = 0
 Downloads.Position = UDim2.new(0.0340000018, 0, 0.075000003, 0)
 Downloads.Size = UDim2.new(0.930000007, 0, 0.850000024, 0)
 Downloads.ZIndex = 3
-Downloads.CanvasSize = UDim2.new(1, 0, 1, 0)
-Downloads.HorizontalScrollBarInset = Enum.ScrollBarInset.Always
+Downloads.CanvasSize = UDim2.new(1, 0, 0, 0)
+Downloads.HorizontalScrollBarInset = Enum.ScrollBarInset.None
 Downloads.ScrollBarThickness = 0
 Downloads.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Downloads.ScrollingDirection = Enum.ScrollingDirection.Y
 
-UIListLayout_2.Parent = Downloads
-UIListLayout_2.SortOrder = Enum.SortOrder.LayoutOrder
+DownloadsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+DownloadsGridLayout.SortOrder = Enum.SortOrder.Name
+DownloadsGridLayout.CellSize = UDim2.new(0.3,0,0.35,0)
+
+local TempListLayout = DownloadsListLayout:Clone()
+TempListLayout.Parent = Downloads
 
 SpacerExample.Name = "SpacerExample"
 SpacerExample.Parent = Downloads
@@ -599,10 +621,14 @@ local function GetEstimatedTime(AnimeName,LowestQuality)
 end
 
 local RefreshDownloads
+local GetEpisodes
 
 local function SwitchFrame(SwitchTo)
     for i,v in pairs(MainFrame:GetChildren()) do
         if v ~= SwitchTo and string.find(v.ClassName, "Frame") and not string.find(v.Name, "Bar") then
+            if v.Visible == true then
+                LastFrame = v
+            end
             v.Visible = false
         end
     end
@@ -618,6 +644,16 @@ local function SwitchFrame(SwitchTo)
         BackButton.Image = "rbxassetid://6972120335"
         VideoBack.Visible = false
         VideoFrame.Playing = false
+    end
+    if SwitchTo == Details and Mode == "Manga" then
+        if Stats.MangaLibrary[Details.Link.Value] == nil then
+            AddToLibrary.Text = "Add to Library"
+        else
+            AddToLibrary.Text = "Remove from Library"
+        end
+        AddToLibrary.Visible = true
+    else
+        AddToLibrary.Visible = false
     end
     if SwitchTo == Results or SwitchTo == Downloads then
         AnimeToggle.Visible = true
@@ -642,10 +678,15 @@ end
 
 RefreshDownloads = function()
     for i,v in pairs(Downloads:GetChildren()) do
-        if string.find(v.ClassName, "Text") and not string.find(v.Name, "Example") and not string.find(v.Name, "Progress") then
-            v:Destroy()
+        if string.find(v.ClassName, "Text") or string.find(v.ClassName, "Image") then
+            if not string.find(v.Name, "Example") and not string.find(v.Name, "Progress") then
+                v:Destroy()
+            end
         end
         if string.find(v.Name, "Progress") and isfile(v.AnimePath.Value) then
+            v:Destroy()
+        end
+        if string.find(v.Name, "Layout") then
             v:Destroy()
         end
     end
@@ -662,87 +703,132 @@ RefreshDownloads = function()
     writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
     if #Stats["Library"] == 0 and #listfiles(AnimeFolder) == 0 then
         local NewSpacer = SpacerExample:Clone()
-        NewSpacer.Name = "No Videos"
-        NewSpacer.Text = "You have no anime downloaded! Press the search button to find some."
+        NewSpacer.Name = "No Content"
+        if Mode == "Anime" then
+            NewSpacer.Text = "You have no anime downloaded! Press the search button to find some."
+            local AnotherNewSpacer = SpacerExample:Clone()
+            AnotherNewSpacer.Name = "No Videos"
+            AnotherNewSpacer.Text = "(Or put any 720p videos you wanna play in YourExploit/Workspace/"..AnimeFolder..")"
+            AnotherNewSpacer.Visible = true
+            AnotherNewSpacer.Parent = Downloads
+        else
+            NewSpacer.Text = "You have no manga downloaded! Press the search button to find some."
+        end
         NewSpacer.Visible = true
         NewSpacer.Parent = Downloads
-        local AnotherNewSpacer = SpacerExample:Clone()
-        AnotherNewSpacer.Name = "No Videos"
-        AnotherNewSpacer.Text = "(Or put any 720p videos you wanna play in YourExploit/Workspace/"..AnimeFolder..")"
-        AnotherNewSpacer.Visible = true
-        AnotherNewSpacer.Parent = Downloads
         return
     end
-    for i,v in pairs(Stats["Library"]) do
+    if Mode == "Manga" then
+        local NewLayout = DownloadsGridLayout:Clone()
+        NewLayout.Parent = Downloads
+        for i,v in pairs(Stats["MangaLibrary"]) do
+            local NewEntry = Results.Example:Clone()
+            NewEntry.Image = getasset(v.Thumbnail)
+            NewEntry.Link.Value = i
+            NewEntry.Title.Text = v.Title
+            NewEntry.Visible = true
+            NewEntry.Name = v.Title
+            NewEntry.MouseButton1Click:Connect(function()
+                for i,v in pairs(Episodes:GetChildren()) do
+                    if v:IsA("TextButton") and not string.find(v.Name, "Example") then
+                        v:Destroy()
+                    end
+                end
+                Details.Link.Value = i
+                Details.Title.Text = v.Title
+                Details.ImageLabel.Image = getasset(v.Thumbnail)
+
+                SwitchFrame(Details) 
+
+                local MangaPage = game:HttpGet(i)
+                local SearchStart = string.find(MangaPage, 'name="description"')
+
+                local DescStart = string.find(MangaPage,"<h3>Description :</h3>",SearchStart)+#"<h3>Description :</h3>"
+                local DescEnd = string.find(MangaPage,'<',DescStart)-1
+                local Desc = string.sub(MangaPage,DescStart,DescEnd)
+                Desc = string.gsub(Desc,"&ldquo;",'"')
+                Desc = string.gsub(Desc,"&rdquo;",'"')
+                Desc = string.gsub(Desc,"&quot;",'"')
+
+                Details.Description.Text = Desc
+                GetEpisodes(MangaPage)
+            end)
+            NewEntry.Parent = Downloads
+        end
+    else
+        local NewLayout = DownloadsListLayout:Clone()
+        NewLayout.Parent = Downloads
+        for i,v in pairs(Stats["Library"]) do
+            local NewSpacer = SpacerExample:Clone()
+            NewSpacer.Name = i
+            NewSpacer.Text = i
+            NewSpacer.Visible = true
+            NewSpacer.Parent = Downloads
+            for x,y in pairs(v) do
+                local NewEntry = Example_3:Clone()
+                NewEntry.Text = string.gsub(y,AnimeFolder,"")
+                NewEntry.Name = string.gsub(y,AnimeFolder,"")
+                NewEntry.AnimePath.Value = y
+                NewEntry.Visible = true
+                NewEntry.Parent = Downloads
+                NewEntry.Delete.MouseButton1Click:Connect(function()
+                    delfile(NewEntry.AnimePath.Value)
+                    RefreshDownloads()
+                end)
+                NewEntry.Play.MouseButton1Click:Connect(function()
+                    SwitchFrame(VideoFrame)
+                    VideoFrame.Video = getasset(NewEntry.AnimePath.Value)
+                    VideoFrame.Playing = true
+                    MainFrame.Size = UDim2.new(0.300000012, 0, 0.4, 0)
+                    TopBar.Size = UDim2.new(0.300000012, 0, 0.0352893025, 0)
+    --[[
+                    MainFrame:TweenSize(
+                        UDim2.new(0.300000012, 0, 0.4, 0),
+                        Enum.EasingDirection.In,
+                        Enum.EasingStyle.Linear,
+                        1
+                    )
+                    TopBar:TweenSize(
+                        UDim2.new(0.300000012, 0, OriginalTop.Y.Scale, 0), --UDim2.fromOffset(Main.X, Main.Y),
+                        Enum.EasingDirection.In,
+                        Enum.EasingStyle.Linear,
+                        1
+                    )
+    
+    --]]
+    
+                end)
+            end
+        end
         local NewSpacer = SpacerExample:Clone()
-        NewSpacer.Name = i
-        NewSpacer.Text = i
+        NewSpacer.Name = "All Videos"
+        NewSpacer.Text = "All Videos"
         NewSpacer.Visible = true
         NewSpacer.Parent = Downloads
-        for x,y in pairs(v) do
+        for i,v in pairs(listfiles(AnimeFolder)) do
             local NewEntry = Example_3:Clone()
-            NewEntry.Text = string.gsub(y,AnimeFolder,"")
-            NewEntry.Name = string.gsub(y,AnimeFolder,"")
-            NewEntry.AnimePath.Value = y
+            NewEntry.Text = string.gsub(v,AnimeFolder,"")
+            NewEntry.Name = string.gsub(v,AnimeFolder,"")
+            NewEntry.AnimePath.Value = v
             NewEntry.Visible = true
             NewEntry.Parent = Downloads
             NewEntry.Delete.MouseButton1Click:Connect(function()
                 delfile(NewEntry.AnimePath.Value)
+                writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
                 RefreshDownloads()
             end)
             NewEntry.Play.MouseButton1Click:Connect(function()
                 SwitchFrame(VideoFrame)
                 VideoFrame.Video = getasset(NewEntry.AnimePath.Value)
                 VideoFrame.Playing = true
-                MainFrame.Size = UDim2.new(0.300000012, 0, 0.4, 0)
-                TopBar.Size = UDim2.new(0.300000012, 0, 0.0352893025, 0)
---[[
                 MainFrame:TweenSize(
                     UDim2.new(0.300000012, 0, 0.4, 0),
                     Enum.EasingDirection.In,
                     Enum.EasingStyle.Linear,
                     1
                 )
-                TopBar:TweenSize(
-                    UDim2.new(0.300000012, 0, OriginalTop.Y.Scale, 0), --UDim2.fromOffset(Main.X, Main.Y),
-                    Enum.EasingDirection.In,
-                    Enum.EasingStyle.Linear,
-                    1
-                )
-
---]]
-
             end)
         end
-    end
-    local NewSpacer = SpacerExample:Clone()
-    NewSpacer.Name = "All Videos"
-    NewSpacer.Text = "All Videos"
-    NewSpacer.Visible = true
-    NewSpacer.Parent = Downloads
-    for i,v in pairs(listfiles(AnimeFolder)) do
-        local NewEntry = Example_3:Clone()
-        NewEntry.Text = string.gsub(v,AnimeFolder,"")
-        NewEntry.Name = string.gsub(v,AnimeFolder,"")
-        NewEntry.AnimePath.Value = v
-        NewEntry.Visible = true
-        NewEntry.Parent = Downloads
-        NewEntry.Delete.MouseButton1Click:Connect(function()
-            delfile(NewEntry.AnimePath.Value)
-            writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
-            RefreshDownloads()
-        end)
-        NewEntry.Play.MouseButton1Click:Connect(function()
-            SwitchFrame(VideoFrame)
-            VideoFrame.Video = getasset(NewEntry.AnimePath.Value)
-            VideoFrame.Playing = true
-            MainFrame:TweenSize(
-                UDim2.new(0.300000012, 0, 0.4, 0),
-                Enum.EasingDirection.In,
-                Enum.EasingStyle.Linear,
-                1
-            )
-        end)
     end
 end
 
@@ -876,25 +962,26 @@ local function ConfirmPrompt(Title,Body,ConfirmFunction)
     NewPrompt.Parent = MainFrame
 end
 
-local function GetEpisodes(Page,FirstEp,LastEp)
+GetEpisodes = function(Page,FirstEp,LastEp)
     if Mode == "Manga" then
         local SearchFrom = string.find(Page, "row%-content%-chapter")
         repeat
-            local First = string.find(Page,"chapter%-name",ChaptersSearchFrom)
+            local First = string.find(Page,"chapter%-name",SearchFrom)
             if First ~= nil then
-                local ChapterLinkStart = string.find(Page,'href="',First)+6
-                local ChapterLinkEnd = string.find(Page,'"',ChapterLinkStart)-1
-                local ChapterLink = string.sub(Page,ChapterLinkStart,ChapterLinkEnd)
+                local LinkStart = string.find(Page,'href="',First)+6
+                local LinkEnd = string.find(Page,'"',LinkStart)-1
+                local Link = string.sub(Page,LinkStart,LinkEnd)
 
-                local ChapterNameStart = string.find(Page,'>',ChapterLinkEnd)+1
-                local ChapterNameEnd = string.find(Page,'</',ChapterNameStart)-1
-                local ChapterName = string.sub(Page,ChapterNameStart,ChapterNameEnd)
+                local NameStart = string.find(Page,'>',LinkEnd)+1
+                local NameEnd = string.find(Page,'</',NameStart)-1
+                local Name = string.sub(Page,NameStart,NameEnd)
 
                 local NewChapter = Episodes.Example:Clone()
-                NewChapter.Name = string.gsub(ChapterName, "Chapter ","")
+                NewChapter.Name = string.gsub(Name, "Chapter ","")
                 NewChapter.Parent = Episodes
-                NewChapter.Text = ChapterName.." (click to read)"
+                NewChapter.Text = Name.." (click to read)"
                 NewChapter.Visible = true
+                NewChapter.ChapterLink.Value = Link
 --[[
                 NewChapter.MouseButton1Click:Connect(function()
                     local LinkName = string.gsub(Details.Link.Value, AnimeBaseUrl.."/category/","")
@@ -917,10 +1004,10 @@ local function GetEpisodes(Page,FirstEp,LastEp)
                     end)
                 end)
 --]]
-                SearchFrom = ChapterNameEnd+2
+                SearchFrom = NameEnd+2
             end
             task.wait()
-        until Start == nil or Details.Visible == false
+        until First == nil or Details.Visible == false
     else
         for i = tonumber(FirstEp),tonumber(LastEp) do
             local NewEpisode = Episodes.Example:Clone()
@@ -998,11 +1085,12 @@ local function SearchFor(ToSearch)
                             v:Destroy()
                         end
                     end
-                    SwitchFrame(Details)
                     Details.Link.Value = Link
                     Details.Title.Text = Name
                     Details.ImageLabel.Image = getasset(TempFolder..Name..".jpg")
-    
+
+                    SwitchFrame(Details)    
+
                     local MangaPage = game:HttpGet(Link)
                     local SearchStart = string.find(MangaPage, 'name="description"')
 
@@ -1239,7 +1327,7 @@ end)
 
 BackButton.MouseButton1Click:Connect(function()
     if Details.Visible == true then
-        SwitchFrame(Results)
+        SwitchFrame(LastFrame)
     elseif Results.Visible == true then
         SwitchFrame(Downloads)
     elseif VideoFrame.Visible then
@@ -1248,20 +1336,51 @@ BackButton.MouseButton1Click:Connect(function()
 end)
 
 AnimeToggle.MouseButton1Click:Connect(function()
+    local PreviousMode = Mode
     Mode = "Anime"
     AnimeToggle.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
     MangaToggle.BackgroundColor3 = Color3.fromRGB(61, 63, 67)
+    if Results.Visible and PreviousMode ~= Mode and LastSearch ~= "" then
+        SearchFor(LastSearch)
+    end
+    if Downloads.Visible == true then
+        RefreshDownloads()
+    end
 end)
 MangaToggle.MouseButton1Click:Connect(function()
+    local PreviousMode = Mode
     Mode = "Manga"
     AnimeToggle.BackgroundColor3 = Color3.fromRGB(61, 63, 67)
     MangaToggle.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+    if Results.Visible and PreviousMode ~= Mode and LastSearch ~= "" then
+        SearchFor(LastSearch)
+    end
+    if Downloads.Visible == true then
+        RefreshDownloads()
+    end
+end)
+
+AddToLibrary.MouseButton1Click:Connect(function()
+    if Stats.MangaLibrary[Details.Link.Value] == nil then
+        writefile(ThumbnailsFolder..Details.Title.Text..".jpg",readfile(TempFolder..Details.Title.Text..".jpg"))
+        Stats.MangaLibrary[Details.Link.Value] = {
+            ["Thumbnail"] = ThumbnailsFolder..Details.Title.Text..".jpg";
+            ["Title"] = Details.Title.Text;
+        }
+        writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
+        AddToLibrary.Text = "Remove from Library"
+    else
+        Stats.MangaLibrary[Details.Link.Value] = nil
+        writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
+        AddToLibrary.Text = "Add to Library"
+    end
 end)
 
 SearchBar.FocusLost:Connect(function(enterpressed, input)
     if not enterpressed then
         return
     end
+    LastSearch = SearchBar.Text
     SwitchFrame(Results)
     SearchFor(SearchBar.Text)
 end)
