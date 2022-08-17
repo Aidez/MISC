@@ -765,39 +765,41 @@ RefreshDownloads = function()
             NewSpacer.Visible = true
             NewSpacer.Parent = Downloads
             for x,y in pairs(v) do
-                local NewEntry = Example_3:Clone()
-                NewEntry.Text = string.gsub(y,AnimeFolder,"")
-                NewEntry.Name = string.gsub(y,AnimeFolder,"")
-                NewEntry.AnimePath.Value = y
-                NewEntry.Visible = true
-                NewEntry.Parent = Downloads
-                NewEntry.Delete.MouseButton1Click:Connect(function()
-                    delfile(NewEntry.AnimePath.Value)
-                    RefreshDownloads()
-                end)
-                NewEntry.Play.MouseButton1Click:Connect(function()
-                    SwitchFrame(VideoFrame)
-                    VideoFrame.Video = getasset(NewEntry.AnimePath.Value)
-                    VideoFrame.Playing = true
-                    MainFrame.Size = UDim2.new(0.300000012, 0, 0.4, 0)
-                    TopBar.Size = UDim2.new(0.300000012, 0, 0.0352893025, 0)
-    --[[
-                    MainFrame:TweenSize(
-                        UDim2.new(0.300000012, 0, 0.4, 0),
-                        Enum.EasingDirection.In,
-                        Enum.EasingStyle.Linear,
-                        1
-                    )
-                    TopBar:TweenSize(
-                        UDim2.new(0.300000012, 0, OriginalTop.Y.Scale, 0), --UDim2.fromOffset(Main.X, Main.Y),
-                        Enum.EasingDirection.In,
-                        Enum.EasingStyle.Linear,
-                        1
-                    )
-    
-    --]]
-    
-                end)
+                if v ~= "" then
+                    local NewEntry = Example_3:Clone()
+                    NewEntry.Text = string.gsub(y,AnimeFolder,"")
+                    NewEntry.Name = string.gsub(y,AnimeFolder,"")
+                    NewEntry.AnimePath.Value = y
+                    NewEntry.Visible = true
+                    NewEntry.Parent = Downloads
+                    NewEntry.Delete.MouseButton1Click:Connect(function()
+                        delfile(NewEntry.AnimePath.Value)
+                        RefreshDownloads()
+                    end)
+                    NewEntry.Play.MouseButton1Click:Connect(function()
+                        SwitchFrame(VideoFrame)
+                        VideoFrame.Video = getasset(NewEntry.AnimePath.Value)
+                        VideoFrame.Playing = true
+                        MainFrame.Size = UDim2.new(0.300000012, 0, 0.4, 0)
+                        TopBar.Size = UDim2.new(0.300000012, 0, 0.0352893025, 0)
+        --[[
+                        MainFrame:TweenSize(
+                            UDim2.new(0.300000012, 0, 0.4, 0),
+                            Enum.EasingDirection.In,
+                            Enum.EasingStyle.Linear,
+                            1
+                        )
+                        TopBar:TweenSize(
+                            UDim2.new(0.300000012, 0, OriginalTop.Y.Scale, 0), --UDim2.fromOffset(Main.X, Main.Y),
+                            Enum.EasingDirection.In,
+                            Enum.EasingStyle.Linear,
+                            1
+                        )
+        
+        --]]
+        
+                    end)
+                end
             end
         end
         local NewSpacer = SpacerExample:Clone()
@@ -933,6 +935,11 @@ local function DownloadAnime(Tag,AnimeName,Episode)
             Stats["Library"][AnimeName] = {}
         end
         if Episode ~= "test" then
+            for i = 1,tonumber(Episode) do
+                if not Stats["Library"][AnimeName][i] then
+                    Stats["Library"][AnimeName][i] = ""
+                end
+            end
             Stats["Library"][AnimeName][tonumber(Episode)] = Path
         end
         writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
