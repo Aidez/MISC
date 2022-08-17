@@ -1,7 +1,12 @@
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
 local RootFolder = "AnimeWatcher/"
 local AnimeFolder = "AnimeWatcher/Anime/"
 local TempFolder = "AnimeWatcher/TempFiles/"
-local BaseUrl = "https://gogoanime.lu"
+local AnimeBaseUrl = "https://gogoanime.lu"
+local MangaBaseUrl = "https://manganato.com"
 
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
@@ -9,6 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 local Player = game.Players.LocalPlayer
 local Mouse = game.Players.LocalPlayer:GetMouse()
 
+local Mode = "Anime"
 local Minimizing = false
 local MouseOnTopbar = false
 local MouseOnResize = false
@@ -40,7 +46,8 @@ end
 local Stats
 if not pcall(function()Stats = HttpService:JSONDecode(readfile(RootFolder.."UserStats.txt"))end) then
     Stats = {
-        Library = {}
+        Library = {};
+        MangaLibrary = {};
     }
 end
 
@@ -59,12 +66,15 @@ local UIGridLayout = Instance.new("UIGridLayout")
 local Example = Instance.new("ImageButton")
 local Title_2 = Instance.new("TextLabel")
 local BottomBar = Instance.new("Frame")
+local MangaToggle = Instance.new("TextButton")
+local AnimeToggle = Instance.new("TextButton")
 local Resize = Instance.new("ImageButton")
 local VideoBack = Instance.new("ImageButton")
 local BackButton = Instance.new("ImageButton")
 local DownloadsButton = Instance.new("ImageButton")
 local SearchButton = Instance.new("ImageButton")
 local Details = Instance.new("Frame")
+local AddToLibrary = Instance.new("TextButton")
 local Episodes = Instance.new("ScrollingFrame")
 local UIListLayout = Instance.new("UIListLayout")
 local Example_2 = Instance.new("TextButton")
@@ -206,7 +216,35 @@ BottomBar.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
 BottomBar.BackgroundTransparency = 1.000
 BottomBar.Position = UDim2.new(0, 0, 0.925000072, 0)
 BottomBar.Size = UDim2.new(1, 0, 0.0750000551, 0)
-BottomBar.ZIndex = 3
+BottomBar.ZIndex = 4
+
+MangaToggle.Name = "MangaToggle"
+MangaToggle.Parent = BottomBar
+MangaToggle.BackgroundColor3 = Color3.fromRGB(61, 63, 67)
+MangaToggle.BorderSizePixel = 0
+MangaToggle.Position = UDim2.new(0.233999997, 0, -0.5, 0)
+MangaToggle.Size = UDim2.new(0.200000003, 0, 0.5, 0)
+MangaToggle.ZIndex = 4
+MangaToggle.Font = Enum.Font.SourceSans
+MangaToggle.Text = "Manga"
+MangaToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+MangaToggle.TextSize = 14.000
+MangaToggle.TextWrapped = true
+MangaToggle.Visible = true
+
+AnimeToggle.Name = "AnimeToggle"
+AnimeToggle.Parent = BottomBar
+AnimeToggle.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+AnimeToggle.BorderSizePixel = 0
+AnimeToggle.Position = UDim2.new(0.0340000018, 0, -0.5, 0)
+AnimeToggle.Size = UDim2.new(0.200000003, 0, 0.5, 0)
+AnimeToggle.ZIndex = 4
+AnimeToggle.Font = Enum.Font.SourceSans
+AnimeToggle.Text = "Anime"
+AnimeToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+AnimeToggle.TextSize = 14.000
+AnimeToggle.TextWrapped = true
+AnimeToggle.Visible = true
 
 Resize.Name = "Resize"
 Resize.Parent = BottomBar
@@ -264,6 +302,20 @@ Details.Visible = false
 local Link_2 = Instance.new("StringValue",Details)
 Link_2.Name = "Link"
 
+AddToLibrary.Name = "AddToLibrary"
+AddToLibrary.Parent = Details
+AddToLibrary.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+AddToLibrary.BorderSizePixel = 0
+AddToLibrary.Position = UDim2.new(0, 0, 0.449999988, 0)
+AddToLibrary.Size = UDim2.new(0.200000003, 0, 0.0500000007, 0)
+AddToLibrary.ZIndex = 4
+AddToLibrary.Font = Enum.Font.SourceSans
+AddToLibrary.Text = "Add to Library"
+AddToLibrary.TextColor3 = Color3.fromRGB(255, 255, 255)
+AddToLibrary.TextScaled = true
+AddToLibrary.TextSize = 14.000
+AddToLibrary.TextWrapped = true
+
 Episodes.Name = "Episodes"
 Episodes.Parent = Details
 Episodes.Active = true
@@ -292,6 +344,9 @@ Example_2.TextColor3 = Color3.fromRGB(255, 255, 255)
 Example_2.TextSize = 16.000
 Example_2.TextWrapped = true
 Example_2.TextXAlignment = Enum.TextXAlignment.Left
+
+local ChapterLink = Instance.new("StringValue",Example_2)
+ChapterLink.Name = "ChapterLink"
 
 ImageLabel.Parent = Details
 ImageLabel.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
@@ -499,8 +554,14 @@ local function GetEstimatedTime(AnimeName,LowestQuality)
         local FrameSize = LowestQuality * CommonResolutions[LowestQuality]
         local OneSecond = FrameSize * 24
         local Length = 160
-
-        local MALSearch = game:HttpGet("https://myanimelist.net/search/all?q="..string.gsub(AnimeName," ","%%20").."&cat=anime")
+ 
+        local MALSearch = nil
+        local Success = pcall(function()
+            MALSearch = game:HttpGet("https://myanimelist.net/search/all?q="..string.gsub(AnimeName," ","%%20").."&cat=anime")
+        end)
+        if Success == false or MALSearch == nil then
+            return 0,0," seconds",0
+        end
         local SearchStart = string.find(MALSearch,"content%-result")
         local LinkStart = string.find(MALSearch,"https://myanimelist.net/anime/",SearchStart)
         local LinkEnd = string.find(MALSearch,'"',LinkStart) - 1
@@ -557,9 +618,20 @@ local function SwitchFrame(SwitchTo)
         VideoBack.Visible = false
         VideoFrame.Playing = false
     end
+    if SwitchTo == Results or SwitchTo == Downloads then
+        AnimeToggle.Visible = true
+        MangaToggle.Visible = true
+    else
+        AnimeToggle.Visible = false
+        MangaToggle.Visible = false
+    end
     if SwitchTo == Results then
         SearchBar.Visible = true
+        AnimeToggle.Position = UDim2.new(0.034, 0, -1.5, 0)
+        MangaToggle.Position = UDim2.new(0.234, 0, -1.5, 0)
     else
+        AnimeToggle.Position = UDim2.new(0.034, 0, -0.5, 0)
+        MangaToggle.Position = UDim2.new(0.234, 0, -0.5, 0)
         SearchBar.Visible = false
     end
     if SwitchTo == Downloads then
@@ -701,7 +773,7 @@ local function DownloadAnime(Tag,AnimeName,Episode)
             if v.label ~= nil and v.file ~= nil then
                 local Based,Cringe = string.gsub(v.label, "%D+", "")
                 local Quality = tonumber(Based)
-                if Quality ~= nil and Quality == 720 then-- and Quality < LowestQuality then
+                if Quality ~= nil and Quality < LowestQuality then -- and Quality == 720 then
                     ToDownload = v.file
                     LowestQuality = Quality
                 end
@@ -728,7 +800,6 @@ local function DownloadAnime(Tag,AnimeName,Episode)
     local Path = AnimeFolder..AnimeName.." (Episode "..tostring(Episode)..").webm"
     local Time = tick()
     if Episode ~= "test" then
-print(Seconds)
         local ProgressIndicator = Example_3:Clone()
         ProgressIndicator.Text = string.gsub(Path,AnimeFolder,"")
         ProgressIndicator.Name = string.gsub(Path,AnimeFolder,"").."Progress"
@@ -791,23 +862,6 @@ print(Seconds)
     end
 end
 
-if Stats["Mb/s"] == nil then
-    game.StarterGui:SetCore("SendNotification", {
-        Title = 'Checking DL Speed';
-        Text = "Checking your download speed, because it's your first injection.";
-        Icon = "rbxassetid://2541869220";
-        Duration = 7;
-    })
-    local Success,Time,Size = DownloadAnime("qznrxie1pe4qm-r","youjo-shenki","test")
-    local Megabytes = Size/1000000
-    local Rate = Megabytes/Time
-    Stats["Mb/s"] = tonumber(string.sub(tostring(Rate),1,5))
-    writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
-    if isfile(AnimeFolder.."test.webm") then
-        delfile(AnimeFolder.."test.webm")
-    end
-end
-
 local function ConfirmPrompt(Title,Body,ConfirmFunction)
     local NewPrompt = ExamplePrompt:Clone()
     NewPrompt.Name = "NewPrompt"
@@ -819,6 +873,222 @@ local function ConfirmPrompt(Title,Body,ConfirmFunction)
     end)
     NewPrompt.Yes.MouseButton1Click:Connect(ConfirmFunction)
     NewPrompt.Parent = MainFrame
+end
+
+local function GetEpisodes(Page,FirstEp,LastEp)
+    if Mode == "Manga" then
+        local SearchFrom = string.find(Page, "row%-content%-chapter")
+        repeat
+            local First = string.find(Page,"chapter%-name",ChaptersSearchFrom)
+            if First ~= nil then
+                local ChapterLinkStart = string.find(Page,'href="',First)+6
+                local ChapterLinkEnd = string.find(Page,'"',ChapterLinkStart)-1
+                local ChapterLink = string.sub(Page,ChapterLinkStart,ChapterLinkEnd)
+
+                local ChapterNameStart = string.find(Page,'>',ChapterLinkEnd)+1
+                local ChapterNameEnd = string.find(Page,'</',ChapterNameStart)-1
+                local ChapterName = string.sub(Page,ChapterNameStart,ChapterNameEnd)
+
+                local NewChapter = Episodes.Example:Clone()
+                NewChapter.Name = string.gsub(ChapterName, "Chapter ","")
+                NewChapter.Parent = Episodes
+                NewChapter.Text = ChapterName.." (click to read)"
+                NewChapter.Visible = true
+--[[
+                NewChapter.MouseButton1Click:Connect(function()
+                    local LinkName = string.gsub(Details.Link.Value, AnimeBaseUrl.."/category/","")
+                    local EpisodeLink = AnimeBaseUrl.."/"..LinkName.."-episode-"..NewChapter.Name
+                    local EstimatedTime,EstimatedSize,Extension = GetEstimatedTime(Details.Title.Text,720)
+                    local TimeAddOn = ""
+                    if EstimatedTime ~= nil then
+                        TimeAddOn = "\n(Estimated download time: "..EstimatedTime..Extension..")"
+                    end
+                    local PromptBody = 'Are you sure you want to download "'..Details.Title.Text..' Episode '..NewChapter.Name.."'? "..TimeAddOn
+                    ConfirmPrompt("Are you sure?",PromptBody,function()
+                        if MainFrame:FindFirstChild("NewPrompt") then
+                            MainFrame.NewPrompt:Destroy()
+                        end
+                        local EpisodePage = game:HttpGet(EpisodeLink)
+                        local TagStart = string.find(EpisodePage,"https://fembed%-hd%.com/v/")+#"https://fembed-hd.com/v/"
+                        local TagEnd = string.find(EpisodePage,'"',TagStart)-1
+                        local Tag = string.sub(EpisodePage,TagStart,TagEnd)
+                        DownloadAnime(Tag,Details.Title.Text,NewChapter.Name)
+                    end)
+                end)
+--]]
+                SearchFrom = ChapterNameEnd+2
+            end
+            task.wait()
+        until Start == nil or Details.Visible == false
+    else
+        for i = tonumber(FirstEp),tonumber(LastEp) do
+            local NewEpisode = Episodes.Example:Clone()
+            NewEpisode.Name = tostring(i)
+            NewEpisode.Parent = Episodes
+            NewEpisode.Text = "Episode "..tostring(i).." (click to download)"
+            NewEpisode.Visible = true
+            NewEpisode.MouseButton1Click:Connect(function()
+                local LinkName = string.gsub(Details.Link.Value, AnimeBaseUrl.."/category/","")
+                local EpisodeLink = AnimeBaseUrl.."/"..LinkName.."-episode-"..NewEpisode.Name
+                local EstimatedTime,EstimatedSize,Extension = GetEstimatedTime(Details.Title.Text,720)
+                local TimeAddOn = ""
+                if EstimatedTime ~= nil then
+                    TimeAddOn = "\n(Estimated download time: "..EstimatedTime..Extension..")"
+                end
+                local PromptBody = 'Are you sure you want to download "'..Details.Title.Text..' Episode '..NewEpisode.Name.."'? "..TimeAddOn
+                ConfirmPrompt("Are you sure?",PromptBody,function()
+                    if MainFrame:FindFirstChild("NewPrompt") then
+                        MainFrame.NewPrompt:Destroy()
+                    end
+                    local EpisodePage = game:HttpGet(EpisodeLink)
+                    local TagStart = string.find(EpisodePage,"https://fembed%-hd%.com/v/")+#"https://fembed-hd.com/v/"
+                    local TagEnd = string.find(EpisodePage,'"',TagStart)-1
+                    local Tag = string.sub(EpisodePage,TagStart,TagEnd)
+                    DownloadAnime(Tag,Details.Title.Text,NewEpisode.Name)
+                end)
+            end)
+        end
+    end
+end
+
+local function SearchFor(ToSearch)
+    local Files = listfiles(TempFolder)
+    for i,v in pairs(Files) do
+        delfile(v)
+    end
+    for i,v in pairs(Results:GetChildren()) do
+        if v:IsA("ImageButton") and v.Name ~= "Example" then
+            v:Destroy()
+        end
+    end
+    local ModeWhenSearched = Mode
+    if Mode == "Manga" then
+        ToSearch = string.lower(string.gsub(ToSearch," ","_"))
+        local Search = game:HttpGet(MangaBaseUrl.."/search/story/"..ToSearch)
+        local SearchFrom = 1
+        repeat 
+            local First = string.find(Search,'search%-story%-item',SearchFrom)
+            if First ~= nil then
+                local LinkStart = string.find(Search,'href="',First)+6
+                local LinkEnd = string.find(Search,'"',LinkStart)-1
+                local Link = string.sub(Search,LinkStart,LinkEnd)
+
+                local NameStart = string.find(Search,'title="',LinkEnd)+7
+                local NameEnd = string.find(Search,'"',NameStart)-1
+                local Name = string.sub(Search,NameStart,NameEnd)
+
+                local ImageStart = string.find(Search,'src="',NameEnd)+5
+                local ImageEnd = string.find(Search,'"',ImageStart)-1
+                local Image = string.sub(Search,ImageStart,ImageEnd)
+
+                writefile(TempFolder..Name..".jpg",game:HttpGet(Image))
+
+                local NewResult = Example:Clone()
+                NewResult.Parent = Results
+                NewResult.Image = getasset(TempFolder..Name..".jpg")
+                NewResult.Visible = true
+                NewResult.Name = Name
+                NewResult.Title.Text = Name
+                NewResult.Link.Value = Link
+
+                NewResult.MouseButton1Click:Connect(function()
+                    for i,v in pairs(Episodes:GetChildren()) do
+                        if v:IsA("TextButton") and not string.find(v.Name, "Example") then
+                            v:Destroy()
+                        end
+                    end
+                    SwitchFrame(Details)
+                    Details.Link.Value = Link
+                    Details.Title.Text = Name
+                    Details.ImageLabel.Image = getasset(TempFolder..Name..".jpg")
+    
+                    local MangaPage = game:HttpGet(Link)
+                    local SearchStart = string.find(MangaPage, 'name="description"')
+
+                    local DescStart = string.find(MangaPage,"<h3>Description :</h3>:",SearchStart)+#"<h3>Description :</h3>"
+                    local DescEnd = string.find(MangaPage,'<',DescStart)-1
+                    local Desc = string.sub(MangaPage,DescStart,DescEnd)
+                    Desc = string.gsub(Desc,"&ldquo;",'"')
+                    Desc = string.gsub(Desc,"&rdquo;",'"')
+                    Desc = string.gsub(Desc,"&quot;",'"')
+
+                    Details.Description.Text = Desc
+                    GetEpisodes(MangaPage)
+                end)
+                SearchFrom = ImageEnd+2
+            end
+            task.wait()
+        until First == nil or Results.Visible == false or Mode ~= ModeWhenSearched
+    else
+        ToSearch = string.gsub(ToSearch," ","%%20")
+        local Search = game:HttpGet(AnimeBaseUrl.."/search.html?keyword="..ToSearch)
+        local SearchFrom = string.find(Search, 'class="items"')
+        repeat 
+            local First = string.find(Search,'class="img"',SearchFrom)
+            if First ~= nil then
+                local LinkStart = string.find(Search,"/category/",First)
+                local LinkEnd = string.find(Search,'"',LinkStart)-1
+                local Link = AnimeBaseUrl..string.sub(Search,LinkStart,LinkEnd)
+    
+    
+                local NameStart = string.find(Search,'title="',LinkEnd)+7
+                local NameEnd = string.find(Search,'"',NameStart)-1
+                local Name = string.sub(Search,NameStart,NameEnd)
+    
+                local ImageStart = string.find(Search,'src="',NameEnd)+5
+                local ImageEnd = string.find(Search,'"',ImageStart)-1
+                local Image = string.sub(Search,ImageStart,ImageEnd)
+    
+                writefile(TempFolder..Name..".jpg",game:HttpGet(Image))
+    
+                local NewResult = Example:Clone()
+                NewResult.Parent = Results
+                NewResult.Image = getasset(TempFolder..Name..".jpg")
+                NewResult.Visible = true
+                NewResult.Name = Name
+                NewResult.Title.Text = Name
+                NewResult.Link.Value = Link
+                 
+                NewResult.MouseButton1Click:Connect(function()
+                    for i,v in pairs(Episodes:GetChildren()) do
+                        if v:IsA("TextButton") and not string.find(v.Name, "Example") then
+                            v:Destroy()
+                        end
+                    end
+                    SwitchFrame(Details)
+                    Details.Link.Value = Link
+                    Details.Title.Text = Name
+                    Details.ImageLabel.Image = getasset(TempFolder..Name..".jpg")
+    
+                    local AnimePage = game:HttpGet(Link)
+                    local SearchStart = string.find(AnimePage, "Plot Summary")
+                    local DescStart = string.find(AnimePage,">",SearchStart)+1
+                    local DescEnd = string.find(AnimePage,"</p>",DescStart)-1
+                    local Desc = string.sub(AnimePage,DescStart,DescEnd)
+                    Details.Description.Text = Desc
+                    local FirstEpStart = string.find(AnimePage,"ep_start = '",DescEnd)+12
+                    local FirstEpEnd = string.find(AnimePage,"'",FirstEpStart)-1
+                    local FirstEp = string.sub(AnimePage,FirstEpStart,FirstEpEnd)
+                    local LastEpStart = string.find(AnimePage,"ep_end = '",DescEnd)+10
+                    repeat
+                        local NewLastEp = string.find(AnimePage,"ep_end = '",LastEpStart)
+                        if NewLastEp ~= nil then
+                            LastEpStart = NewLastEp+10
+                        end
+                        task.wait()
+                    until NewLastEp == nil
+                    local LastEpEnd = string.find(AnimePage,"'",LastEpStart)-1
+                    local LastEp = string.sub(AnimePage,LastEpStart,LastEpEnd)
+                    if FirstEp == "0" then
+                        FirstEp = "1"
+                    end
+                    GetEpisodes(AnimePage,FirstEp,LastEp)
+                end)
+                SearchFrom = ImageEnd+2
+            end
+            task.wait()
+        until First == nil or Results.Visible == false or Mode ~= ModeWhenSearched
+    end
 end
 
 Close.MouseButton1Click:Connect(function()
@@ -976,118 +1246,43 @@ BackButton.MouseButton1Click:Connect(function()
     end
 end)
 
+AnimeToggle.MouseButton1Click:Connect(function()
+    Mode = "Anime"
+    AnimeToggle.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+    MangaToggle.BackgroundColor3 = Color3.fromRGB(61, 63, 67)
+end)
+MangaToggle.MouseButton1Click:Connect(function()
+    Mode = "Manga"
+    AnimeToggle.BackgroundColor3 = Color3.fromRGB(61, 63, 67)
+    MangaToggle.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+end)
+
 SearchBar.FocusLost:Connect(function(enterpressed, input)
     if not enterpressed then
         return
     end
-    local Files = listfiles(TempFolder)
-    for i,v in pairs(Files) do
-        delfile(v)
-    end
-    for i,v in pairs(Results:GetChildren()) do
-        if v:IsA("ImageButton") and v.Name ~= "Example" then
-            v:Destroy()
-        end
-    end
     SwitchFrame(Results)
-    local ToSearch = SearchBar.Text
-    ToSearch = string.gsub(ToSearch," ","%%20")
-    local Search = game:HttpGet(BaseUrl.."/search.html?keyword="..ToSearch)
-    local SearchFrom = string.find(Search, 'class="items"')
-    repeat 
-        local First = string.find(Search,'class="img"',SearchFrom)
-        if First ~= nil then
-            local LinkStart = string.find(Search,"/category/",First)
-            local LinkEnd = string.find(Search,'"',LinkStart)-1
-            local Link = BaseUrl..string.sub(Search,LinkStart,LinkEnd)
-
-
-            local NameStart = string.find(Search,'title="',LinkEnd) + 7
-            local NameEnd = string.find(Search,'"',NameStart)-1
-            local Name = string.sub(Search,NameStart,NameEnd)
-
-            local ImageStart = string.find(Search,'src="',NameEnd)+5
-            local ImageEnd = string.find(Search,'"',ImageStart)-1
-            local Image = string.sub(Search,ImageStart,ImageEnd)
-
-            writefile(TempFolder..Name..".jpg",game:HttpGet(Image))
-
-            local NewResult = Example:Clone()
-            NewResult.Parent = Results
-            NewResult.Image = getasset(TempFolder..Name..".jpg")
-            NewResult.Visible = true
-            NewResult.Name = Name
-            NewResult.Title.Text = Name
-            NewResult.Link.Value = Link
-             
-            NewResult.MouseButton1Click:Connect(function()
-                for i,v in pairs(Episodes:GetChildren()) do
-                    if v:IsA("TextButton") and not string.find(v.Name, "Example") then
-                        v:Destroy()
-                    end
-                end
-                SwitchFrame(Details)
-                Details.Link.Value = Link
-                Details.Title.Text = Name
-                Details.ImageLabel.Image = getasset(TempFolder..Name..".jpg")
-
-                local AnimePage = game:HttpGet(Link)
-                local SearchStart = string.find(AnimePage, "Plot Summary")
-                local DescStart = string.find(AnimePage,">",SearchStart)+1
-                local DescEnd = string.find(AnimePage,"</p>",DescStart)-1
-                local Desc = string.sub(AnimePage,DescStart,DescEnd)
-                Details.Description.Text = Desc
-                local FirstEpStart = string.find(AnimePage,"ep_start = '",DescEnd)+12
-                local FirstEpEnd = string.find(AnimePage,"'",FirstEpStart)-1
-                local FirstEp = string.sub(AnimePage,FirstEpStart,FirstEpEnd)
-                local LastEpStart = string.find(AnimePage,"ep_end = '",DescEnd)+10
-                repeat
-                    local NewLastEp = string.find(AnimePage,"ep_end = '",LastEpStart)
-                    if NewLastEp ~= nil then
-                        LastEpStart = NewLastEp+10
-                    end
-                    task.wait()
-                until NewLastEp == nil
-                local LastEpEnd = string.find(AnimePage,"'",LastEpStart)-1
-                local LastEp = string.sub(AnimePage,LastEpStart,LastEpEnd)
-                if FirstEp == "0" then
-                    FirstEp = "1"
-                end
-                for i = tonumber(FirstEp),tonumber(LastEp) do
-                    local NewEpisode = Episodes.Example:Clone()
-                    NewEpisode.Name = tostring(i)
-                    NewEpisode.Parent = Episodes
-                    NewEpisode.Text = "Episode "..tostring(i).." (click to download)"
-                    NewEpisode.Visible = true
-                    NewEpisode.MouseButton1Click:Connect(function()
-                        local LinkName = string.gsub(Details.Link.Value, BaseUrl.."/category/","")
-                        local EpisodeLink = BaseUrl.."/"..LinkName.."-episode-"..NewEpisode.Name
-                        local EstimatedTime,EstimatedSize,Extension = GetEstimatedTime(Details.Title.Text,720)
-                        local TimeAddOn = ""
-                        if EstimatedTime ~= nil then
-                            TimeAddOn = "\n(Estimated download time: "..EstimatedTime..Extension..")"
-                        end
-                        local PromptBody = 'Are you sure you want to download "'..Details.Title.Text..' Episode '..NewEpisode.Name.."'? "..TimeAddOn
-                        ConfirmPrompt("Are you sure?",PromptBody,function()
-                            if MainFrame:FindFirstChild("NewPrompt") then
-                                MainFrame.NewPrompt:Destroy()
-                            end
-                            local EpisodePage = game:HttpGet(EpisodeLink)
-                            local TagStart = string.find(EpisodePage,"https://fembed%-hd%.com/v/")+#"https://fembed-hd.com/v/"
-                            local TagEnd = string.find(EpisodePage,'"',TagStart)-1
-                            local Tag = string.sub(EpisodePage,TagStart,TagEnd)
-                            DownloadAnime(Tag,Details.Title.Text,NewEpisode.Name)
-                        end)
-                    end)
-                end
-            end)
-            SearchFrom = ImageEnd+2
-        end
-        task.wait()
-    until First == nil or Results.Visible == false
+    SearchFor(SearchBar.Text)
 end)
 
 RefreshDownloads()
+
+if Stats["Mb/s"] == nil then
+    game.StarterGui:SetCore("SendNotification", {
+        Title = 'Checking DL Speed';
+        Text = "Checking your download speed, because it's your first injection.";
+        Icon = "rbxassetid://2541869220";
+        Duration = 7;
+    })
+    local Success,Time,Size = DownloadAnime("qznrxie1pe4qm-r","youjo-shenki","test")
+    local Megabytes = Size/1000000
+    local Rate = Megabytes/Time
+    Stats["Mb/s"] = tonumber(string.sub(tostring(Rate),1,5))
+    writefile(RootFolder.."UserStats.txt",HttpService:JSONEncode(Stats))
+    if isfile(AnimeFolder.."test.webm") then
+        delfile(AnimeFolder.."test.webm")
+    end
+end
 
 --[[
 local ScreenGui = Instance.new("ScreenGui",game.CoreGui)
