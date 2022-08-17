@@ -5,7 +5,10 @@ end
 local RootFolder = "AnimeWatcher/"
 local AnimeFolder = "AnimeWatcher/Anime/"
 local TempFolder = "AnimeWatcher/TempFiles/"
+local PagesFolder = "AnimeWatcher/TempFiles/Pages/"
 local ThumbnailsFolder = "AnimeWatcher/Thumbnails/"
+
+
 local AnimeBaseUrl = "https://gogoanime.lu"
 local MangaBaseUrl = "https://manganato.com"
 
@@ -16,6 +19,7 @@ local Player = game.Players.LocalPlayer
 local Mouse = game.Players.LocalPlayer:GetMouse()
 
 local Mode = "Anime"
+local ReadMode = "Manga"
 
 local LastSearch = ""
 local LastFrame = nil
@@ -45,11 +49,15 @@ if isfolder(RootFolder) then
     if not isfolder(ThumbnailsFolder) then
         makefolder(ThumbnailsFolder)
     end
+    if not isfolder(PagesFolder) then
+        makefolder(PagesFolder)
+    end
 else
     makefolder(RootFolder)
     makefolder(AnimeFolder)
     makefolder(TempFolder)
     makefolder(ThumbnailsFolder)
+    makefolder(PagesFolder)
 end
 
 local Stats
@@ -71,12 +79,16 @@ local Close = Instance.new("ImageButton")
 local Minimize = Instance.new("ImageButton")
 local Title = Instance.new("TextLabel")
 local Results = Instance.new("ScrollingFrame")
+local MangaReader = Instance.new("ScrollingFrame")
+local ReaderLayout = Instance.new("UIListLayout")
+local ReaderExample = Instance.new("ImageLabel")
 local UIGridLayout = Instance.new("UIGridLayout")
 local Example = Instance.new("ImageButton")
 local Title_2 = Instance.new("TextLabel")
 local BottomBar = Instance.new("Frame")
 local MangaToggle = Instance.new("TextButton")
 local AnimeToggle = Instance.new("TextButton")
+local WebtoonToggle = Instance.new("TextButton")
 local Resize = Instance.new("ImageButton")
 local VideoBack = Instance.new("ImageButton")
 local BackButton = Instance.new("ImageButton")
@@ -222,6 +234,34 @@ Title_2.TextSize = 14.000
 Title_2.TextStrokeTransparency = 0.000
 Title_2.TextWrapped = true
 
+MangaReader.Name = "MangaReader"
+MangaReader.Parent = MainFrame
+MangaReader.Active = true
+MangaReader.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
+MangaReader.BorderSizePixel = 0
+MangaReader.Position = UDim2.new(0, 0, 0.0500000007, 0)
+MangaReader.Size = UDim2.new(1, 0, 0.875, 0)
+MangaReader.ZIndex = 3
+MangaReader.CanvasSize = UDim2.new(1, 0, 0, 0)
+MangaReader.HorizontalScrollBarInset = Enum.ScrollBarInset.None
+MangaReader.VerticalScrollBarInset = Enum.ScrollBarInset.None
+MangaReader.ScrollBarThickness = 8
+MangaReader.Visible = false
+MangaReader.AutomaticCanvasSize = Enum.AutomaticSize.Y
+MangaReader.ScrollingDirection = Enum.ScrollingDirection.Y
+
+ReaderLayout.Parent = MangaReader
+ReaderLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+ReaderExample.Name = "ReaderExample"
+ReaderExample.Parent = MangaReader
+ReaderExample.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ReaderExample.BorderSizePixel = 0
+ReaderExample.Size = UDim2.new(1, 0, 1, 0)
+ReaderExample.ZIndex = 3
+ReaderExample.Image = "rbxassetid://10578009674"
+ReaderExample.Visible = false
+
 BottomBar.Name = "BottomBar"
 BottomBar.Parent = MainFrame
 BottomBar.BackgroundColor3 = Color3.fromRGB(47, 49, 54)
@@ -257,6 +297,21 @@ AnimeToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 AnimeToggle.TextSize = 14.000
 AnimeToggle.TextWrapped = true
 AnimeToggle.Visible = true
+
+WebtoonToggle.Name = "WebtoonToggle"
+WebtoonToggle.Parent = BottomBar
+WebtoonToggle.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+WebtoonToggle.BorderSizePixel = 0
+WebtoonToggle.Position = UDim2.new(0.0340000018, 0, -0.5, 0)
+WebtoonToggle.Size = UDim2.new(0.200000003, 0, 0.5, 0)
+WebtoonToggle.ZIndex = 4
+WebtoonToggle.Font = Enum.Font.SourceSans
+WebtoonToggle.Text = "Toggle Webtoon Reading Mode"
+WebtoonToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+WebtoonToggle.TextSize = 14.000
+WebtoonToggle.TextWrapped = true
+WebtoonToggle.TextScaled = true
+WebtoonToggle.Visible = false
 
 Resize.Name = "Resize"
 Resize.Parent = BottomBar
@@ -662,6 +717,11 @@ local function SwitchFrame(SwitchTo)
         AnimeToggle.Visible = false
         MangaToggle.Visible = false
     end
+    if SwitchTo == MangaReader then
+        WebtoonToggle.Visible = true
+    else
+        WebtoonToggle.Visible = false
+    end
     if SwitchTo == Results then
         SearchBar.Visible = true
         AnimeToggle.Position = UDim2.new(0.034, 0, -1.5, 0)
@@ -969,7 +1029,7 @@ local function ConfirmPrompt(Title,Body,ConfirmFunction)
     NewPrompt.Parent = MainFrame
 end
 
-GetEpisodes = function(Page,FirstEp,LastEp)
+GetEpisodes = function(Page,FirstEp,LastEp,SeriesName)
     if Mode == "Manga" then
         local SearchFrom = string.find(Page, "row%-content%-chapter")
         repeat
@@ -989,28 +1049,55 @@ GetEpisodes = function(Page,FirstEp,LastEp)
                 NewChapter.Text = Name.." (click to read)"
                 NewChapter.Visible = true
                 NewChapter.ChapterLink.Value = Link
---[[
                 NewChapter.MouseButton1Click:Connect(function()
-                    local LinkName = string.gsub(Details.Link.Value, AnimeBaseUrl.."/category/","")
-                    local EpisodeLink = AnimeBaseUrl.."/"..LinkName.."-episode-"..NewChapter.Name
-                    local EstimatedTime,EstimatedSize,Extension = GetEstimatedTime(Details.Title.Text,720)
-                    local TimeAddOn = ""
-                    if EstimatedTime ~= nil then
-                        TimeAddOn = "\n(Estimated download time: "..EstimatedTime..Extension..")"
+                    local Files = listfiles(PagesFolder)
+                    for i,v in pairs(Files) do
+                        delfile(v)
                     end
-                    local PromptBody = 'Are you sure you want to download "'..Details.Title.Text..' Episode '..NewChapter.Name.."'? "..TimeAddOn
-                    ConfirmPrompt("Are you sure?",PromptBody,function()
-                        if MainFrame:FindFirstChild("NewPrompt") then
-                            MainFrame.NewPrompt:Destroy()
+                    for i,v in pairs(MangaReader:GetChildren()) do
+                        if string.find(v.ClassName, "Image") and not string.find(v.Name, "Example") then
+                            v:Destroy()
                         end
-                        local EpisodePage = game:HttpGet(EpisodeLink)
-                        local TagStart = string.find(EpisodePage,"https://fembed%-hd%.com/v/")+#"https://fembed-hd.com/v/"
-                        local TagEnd = string.find(EpisodePage,'"',TagStart)-1
-                        local Tag = string.sub(EpisodePage,TagStart,TagEnd)
-                        DownloadAnime(Tag,Details.Title.Text,NewChapter.Name)
-                    end)
+                    end
+                    SwitchFrame(MangaReader)
+                    local AnimePage = game:HttpGet(Link)
+                    local ToStart = string.find(AnimePage,"container%-chapter%-reader")
+                    local CurrentPage = 1
+                    repeat
+                        local ImageLinkStart = string.find(AnimePage,'img src="',ToStart)
+                        local ImageLinkEnd
+                        if ImageLinkStart ~= nil then
+                            ImageLinkStart = ImageLinkStart+9
+                            ImageLinkEnd = string.find(AnimePage,'"',ImageLinkStart)
+                            if ImageLinkEnd ~= nil then
+                                ImageLinkEnd = ImageLinkEnd - 1
+                                local ImageLink = string.sub(AnimePage,ImageLinkStart,ImageLinkEnd)
+                                local ImageRequest = syn.request(
+                                    {
+                                        Url = ImageLink,
+                                        Method = "GET",	
+                                        Headers = {
+                                            ["Referer"] = "https://readmanganato.com/";
+                                        },
+                                        
+                                    }
+                                )--TempFolder..ImageLink
+                                writefile(PagesFolder..Details.Title.Text..tostring(CurrentPage)..".jpg",ImageRequest.Body)
+                                local NewImage = ReaderExample:Clone()
+                                NewImage.Name = "Page"
+                                if ReadMode == "Webtoon" then
+                                    NewImage.Size = UDim2.new(1,0,0,15000)
+                                end
+                                NewImage.Image = getasset(PagesFolder..Details.Title.Text..tostring(CurrentPage)..".jpg")
+                                NewImage.Visible = true
+                                NewImage.Parent = MangaReader
+                                CurrentPage = CurrentPage + 1
+                                ToStart = ImageLinkEnd+2
+                            end
+                        end
+                        task.wait()
+                    until ImageLinkStart == nil or ImageLinkEnd == nil or MangaReader.Visible == false
                 end)
---]]
                 SearchFrom = NameEnd+2
             end
             task.wait()
@@ -1048,8 +1135,12 @@ end
 
 local function SearchFor(ToSearch)
     local Files = listfiles(TempFolder)
-    for i,v in pairs(Files) do
-        delfile(v)
+    if #Files ~= 0 then
+        for i,v in pairs(Files) do
+            if not string.find(v,"Pages") then
+                delfile(v)
+            end
+        end
     end
     for i,v in pairs(Results:GetChildren()) do
         if v:IsA("ImageButton") and v.Name ~= "Example" then
@@ -1188,9 +1279,17 @@ local function SearchFor(ToSearch)
 end
 
 Close.MouseButton1Click:Connect(function()
+    for i,v in pairs(AnimePlayer:GetChildren()) do
+        v.Visible = false
+    end
+    task.wait()
     local Files = listfiles(TempFolder)
-    for i,v in pairs(Files) do
-        delfile(v)
+    if #Files ~= 0 then
+        for i,v in pairs(Files) do
+            if not string.find(v,"Pages") then
+                delfile(v)
+            end
+        end
     end
     AnimePlayer:Destroy()
 end)
@@ -1335,6 +1434,13 @@ end)
 BackButton.MouseButton1Click:Connect(function()
     if Details.Visible == true then
         SwitchFrame(LastFrame)
+    elseif MangaReader.Visible == true then
+        SwitchFrame(LastFrame)
+        if Stats.MangaLibrary[Details.Link.Value] ~= nil then
+            LastFrame = Downloads
+        else
+            LastFrame = Results
+        end
     elseif Results.Visible == true then
         SwitchFrame(Downloads)
     elseif VideoFrame.Visible then
@@ -1352,6 +1458,27 @@ AnimeToggle.MouseButton1Click:Connect(function()
     end
     if Downloads.Visible == true then
         RefreshDownloads()
+    end
+end)
+WebtoonToggle.MouseButton1Click:Connect(function()
+    if ReadMode == "Manga" then
+        ReadMode = "Webtoon"
+        WebtoonToggle.BackgroundColor3 = Color3.fromRGB(41, 43, 47)
+        WebtoonToggle.Text = "Webtoon Reading Mode ✓"
+        for i,v in pairs(MangaReader:GetChildren()) do
+            if string.find(v.ClassName, "Image") and not string.find(v.Name, "Example") then
+                v.Size = UDim2.new(1,0,0,15000)
+            end
+        end
+    else
+        ReadMode = "Manga"
+        WebtoonToggle.BackgroundColor3 = Color3.fromRGB(61, 63, 67)
+        WebtoonToggle.Text = "Webtoon Reading Mode"
+        for i,v in pairs(MangaReader:GetChildren()) do
+            if string.find(v.ClassName, "Image") and not string.find(v.Name, "Example") then
+                v.Size = UDim2.new(1,0,1,0)
+            end
+        end
     end
 end)
 MangaToggle.MouseButton1Click:Connect(function()
