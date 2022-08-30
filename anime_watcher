@@ -906,7 +906,7 @@ local function DownloadAnime(Tag,AnimeName,Episode)
     end
     local content = httprequest(
         {
-            Url = "https://fembed-hd.com/api/source/"..Tag,
+            Url = "https://fembed9hd.com/api/source/"..Tag,
             Method = "POST",	
             Headers = {
                 ["Content-Type"] = "application/json",
@@ -1128,7 +1128,7 @@ GetEpisodes = function(Page,FirstEp,LastEp,SeriesName)
                         MainFrame.NewPrompt:Destroy()
                     end
                     local EpisodePage = game:HttpGet(EpisodeLink)
-                    local TagStart = string.find(EpisodePage,"https://fembed%-hd%.com/v/")+#"https://fembed-hd.com/v/"
+                    local TagStart = string.find(EpisodePage,"https://fembed9hd%.com/v/")+#"https://fembed9hd.com/v/"
                     local TagEnd = string.find(EpisodePage,'"',TagStart)-1
                     local Tag = string.sub(EpisodePage,TagStart,TagEnd)
                     DownloadAnime(Tag,Details.Title.Text,NewEpisode.Name)
