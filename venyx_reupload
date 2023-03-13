@@ -1,5 +1,6 @@
 -- init
-local player = game.Players.LocalPlayer
+local players = game:GetService("Players")
+local player = players.LocalPlayer
 local mouse = player:GetMouse()
 
 -- services
@@ -23,14 +24,13 @@ local themes = {
 }
 
 -- shit I added lol
-local Players = game:GetService("Players")
 local function PlayerNameSort(a,b)
     return string.lower(a) < string.lower(b)
 end
 local function GetPlayerNames()
     wait(0.1)
-    local PlayerList = Players:GetPlayers()
-    local LocalPlayerPosition = table.find(PlayerList,Player)
+    local PlayerList = players:GetPlayers()
+    local LocalPlayerPosition = table.find(PlayerList,player)
     if LocalPlayerPosition then
         table.remove(PlayerList,LocalPlayerPosition)
     end
