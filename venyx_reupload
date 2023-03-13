@@ -23,6 +23,7 @@ local themes = {
 }
 
 -- shit I added lol
+local Players = game:GetService("Players")
 local function PlayerNameSort(a,b)
     return string.lower(a) < string.lower(b)
 end
