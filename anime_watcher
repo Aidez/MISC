@@ -9,7 +9,7 @@ local PagesFolder = "AnimeWatcher/TempFiles/Pages/"
 local ThumbnailsFolder = "AnimeWatcher/Thumbnails/"
 
 
-local AnimeBaseUrl = "https://gogoanime.ee"
+local AnimeBaseUrl = "https://gogoanime.gr"
 local MangaBaseUrl = "https://manganato.com"
 
 local HttpService = game:GetService("HttpService")
